@@ -72,7 +72,7 @@ const orderSchema = new mongoose.Schema(
     status: { type: String, enum: ORDER_STATUSES, default: 'Confirmed', index: true },
     priority: { type: String, enum: PRIORITIES, default: 'Normal' },
     baker: { type: String, default: '' },
-    source: { type: String, enum: ['Online', 'Phone', 'In store', 'Enquiry'], default: 'Online' },
+    source: { type: String, enum: ['Online', 'Phone', 'In store', 'Enquiry','POS'], default: 'Online' },
     enquiry: { type: mongoose.Schema.Types.ObjectId, ref: 'Enquiry' },
     enquiryRef: String,
     internalNotes: { type: String, default: '' },

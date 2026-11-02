@@ -157,7 +157,7 @@ export async function exportOrdersCsv(req, res) {
 export async function production(req, res) {
   const s = await getSettings();
   const date = req.query.date || nowParts(s.timezone).date;
-  const orders = await Order.find({ pickupDate: date, status: { $nin: ['Cancelled', 'Pending'] } }).sort({ priority: 1, pickupTime: 1 });
+  const orders = await Order.find({ pickupDate: date, status: { $nin: ['Cancelled', 'Pending'] }, source: { $ne: 'POS' } }).sort({ priority: 1, pickupTime: 1 }); // POS
   res.json({ date, orders, bakers: s.bakers });
 }
 
@@ -176,7 +176,7 @@ export async function calendar(req, res) {
   }
   const [slots, orders] = await Promise.all([
     slotsForDate(date, s, 0),
-    Order.find({ pickupDate: date, status: { $ne: 'Cancelled' } }).select('orderNumber customer pickupTime status paymentStatus items priority total').sort({ pickupTime: 1 }),
+    Order.find({ pickupDate: date, status: { $ne: 'Cancelled' }, source: { $ne: 'POS' } }).select('orderNumber customer pickupTime status paymentStatus items priority total').sort({ pickupTime: 1 }), // POS
   ]);
   res.json({ view: 'day', date, capacity: s.slotCapacity, blocked: s.blockedDates.find((b) => b.date === date) || null, blockedSlots: s.blockedSlots.filter((b) => b.date === date), slots, orders });
 }

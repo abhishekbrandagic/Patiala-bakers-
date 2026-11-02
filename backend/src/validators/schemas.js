@@ -134,6 +134,16 @@ export const manualOrderSchema = z.object({
   paymentStatus: z.enum(PAYMENT_STATUSES).optional(),
 });
 
+
+
+export const posSaleSchema = z.object({
+  items: z.array(cartItemSchema).min(1, 'Add at least one item').max(40),
+  paymentMethod: z.enum(['cash', 'card_in_store', 'bank_transfer']),
+  customerName: z.string().trim().max(120).optional().default(''),
+  cashTendered: z.coerce.number().min(0).max(100000).optional(),
+  idempotencyKey: z.string().min(8).max(80),
+});
+
 // ── Admin: enquiries ──
 export const enquiryPatchSchema = z.object({ status: z.enum(ENQUIRY_STATUSES).optional() });
 export const enquiryNoteSchema = z.object({ text: z.string().trim().min(1).max(2000) });

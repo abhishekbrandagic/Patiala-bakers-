@@ -20,6 +20,7 @@ export const ORDER_TRANSITIONS = {
 };
 export const PAYMENT_STATUSES = ['Unpaid', 'Deposit paid', 'Paid', 'Refunded'];
 export const PAYMENT_METHODS = ['pay_at_pickup', 'deposit_online', 'card_online', 'cash', 'card_in_store', 'bank_transfer'];
+export const WALK_IN_EMAIL = 'walk-in@pos.invalid';
 export const PRIORITIES = ['Normal', 'High'];
 export const STOCK_STATES = ['In stock', 'Low stock', 'Sold out', 'Made to order', 'Unavailable'];
 export const ENQUIRY_STATUSES = ['New', 'Quoted', 'Awaiting Payment', 'Confirmed', 'Declined', 'Converted'];

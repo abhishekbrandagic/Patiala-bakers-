@@ -18,6 +18,7 @@ const Account = lazy(() => import('./pages/storefront/Account.jsx'));
 const AdminLayout = lazy(() => import('./layouts/AdminLayout.jsx'));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard.jsx'));
 const Orders = lazy(() => import('./pages/admin/Orders.jsx'));
+const Pos = lazy(() => import('./pages/admin/Pos.jsx')); // POS
 const Production = lazy(() => import('./pages/admin/Production.jsx'));
 const PickupCalendar = lazy(() => import('./pages/admin/PickupCalendar.jsx'));
 const Products = lazy(() => import('./pages/admin/Products.jsx'));
@@ -62,6 +63,8 @@ export default function App() {
       <Route path="admin" element={<RequireStaff>{S(<AdminLayout />)}</RequireStaff>}>
         <Route index element={S(<Dashboard />)} />
         <Route path="orders" element={A('orders', <Orders />)} />
+        {/* POS */}
+        <Route path="pos" element={A('orders', <Pos />)} />
         <Route path="production" element={A('production', <Production />)} />
         <Route path="calendar" element={A('calendar', <PickupCalendar />)} />
         <Route path="products" element={A('products', <Products />)} />

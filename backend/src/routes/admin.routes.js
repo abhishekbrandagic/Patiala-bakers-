@@ -3,10 +3,13 @@ import { ah } from '../utils/http.js';
 import { validate } from '../middleware/validate.js';
 import { requirePermission as can, requireStaff } from '../middleware/auth.js';
 import { imageUpload } from '../middleware/upload.js';
+
 import * as S from '../validators/schemas.js';
 import * as O from '../controllers/admin.orders.controller.js';
 import * as C from '../controllers/admin.catalog.controller.js';
 import * as M from '../controllers/admin.misc.controller.js';
+import * as P from '../controllers/admin.pos.controller.js';
+
 
 const r = Router();
 r.use(requireStaff);
@@ -23,6 +26,11 @@ r.post('/orders/:id/status', can('orders'), validate({ body: S.statusSchema }), 
 r.post('/orders/:id/payments', can('orders'), validate({ body: S.paymentSchema }), ah(O.addPayment));
 r.post('/orders/:id/refund', can('orders'), validate({ body: S.refundSchema }), ah(O.refund));
 r.delete('/orders/:id', can('settings'), ah(O.deleteOrder));
+
+
+// POS
+r.get('/pos/products', can('orders'), ah(P.listPosProducts));
+r.post('/pos/sales', can('orders'), validate({ body: S.posSaleSchema }), ah(P.createPosSale));
 
 // Production & calendar
 r.get('/production', can('production'), ah(O.production));

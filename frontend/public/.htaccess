@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # API requests ko mat chhedo
+  RewriteRule ^api/ - [L]
+
+  # Agar asli file ya folder hai to wahi do
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Baaki sab index.html par bhejo
+  RewriteRule ^ index.html [L]
+</IfModule>

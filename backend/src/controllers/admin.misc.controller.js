@@ -3,7 +3,7 @@ import { Order } from '../models/Order.js';
 import { User } from '../models/User.js';
 import { ContactMessage } from '../models/misc.js';
 import { Settings } from '../models/Settings.js';
-import { CATEGORIES } from '../config/constants.js';
+import { CATEGORIES, WALK_IN_EMAIL } from '../config/constants.js';
 import { badRequest, conflict, escapeRegex, notFound, paginate, r2 } from '../utils/http.js';
 import { getSettings, invalidateSettings } from '../services/settings.service.js';
 import { applyPayment, newOrderNumber } from '../services/order.service.js';

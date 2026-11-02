@@ -1,6 +1,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, Bot, CakeSlice, CalendarDays, ChefHat, ClipboardList, ExternalLink, LayoutDashboard, LogOut, Package, Settings, Tags, Users } from 'lucide-react';
+// POS: added Store to this import
+import { BarChart3, Bot, CakeSlice, CalendarDays, ChefHat, ClipboardList, ExternalLink, LayoutDashboard, LogOut, Package, Settings, Store, Tags, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../api/client.js';
 import { PageLoader } from '../components/ui.jsx';
@@ -8,6 +9,7 @@ import { PageLoader } from '../components/ui.jsx';
 export const ADMIN_NAV = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/orders', label: 'Orders', icon: ClipboardList, perm: 'orders' },
+  { to: '/admin/pos', label: 'POS', icon: Store, perm: 'orders' }, // POS
   { to: '/admin/production', label: 'Production', icon: ChefHat, perm: 'production' },
   { to: '/admin/calendar', label: 'Pickup Calendar', icon: CalendarDays, perm: 'calendar' },
   { to: '/admin/products', label: 'Products & Inventory', icon: Package, perm: 'products' },
