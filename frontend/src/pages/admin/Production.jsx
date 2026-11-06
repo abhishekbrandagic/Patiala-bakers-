@@ -1,15 +1,37 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ChevronLeft, ChevronRight, Printer } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Printer } from 'lucide-react';
 import { addDays, format, parseISO } from 'date-fns';
 import { api, apiError } from '../../api/client.js';
 import { useFetch } from '../../hooks/useFetch.js';
 import { Badge, ErrorState, Skeleton } from '../../components/ui.jsx';
 import OrderDrawer, { ProductionTicket } from '../../components/admin/OrderDrawer.jsx';
-import { cn, fmtLong, sizeLabel, t12, todayISO } from '../../utils/format.js';
+import { cn, fmtLong, minutesUntil, sizeLabel, t12, todayISO, tomorrowISO } from '../../utils/format.js';
 
 const COLS = [['Confirmed', 'b-info', '#2B5A88'], ['In Production', 'b-warn', '#D08A1C'], ['Ready', 'b-ok', '#2B6638'], ['Collected', 'b-mute', '#9C8E88']];
+
+const REFRESH_EVERY = 30000;
+
+const CSS = `
+.admin-theme .kcard.alert { background: #FDECEA; border-color: #D92D20; box-shadow: inset 4px 0 0 #D92D20, 0 1px 2px rgba(15,42,74,.08); }
+.kc-alert { display: flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 800; color: #B42318; }
+`;
+
+const duration = (minutes) => {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return [h ? `${h}h` : '', m || !h ? `${m}m` : ''].filter(Boolean).join(' ');
+};
+
+// Orders still being made turn red once pickup is close. Counter sales are collected straight away, so they never do.
+function lateLabel(order, alertMinutes) {
+  if (order.source === 'POS' || !['Confirmed', 'In Production'].includes(order.status)) return '';
+  const minutes = minutesUntil(order.pickupDate, order.pickupTime);
+  if (minutes < 0) return `Late by ${duration(-minutes)}`;
+  if (alertMinutes > 0 && minutes <= alertMinutes) return minutes ? `Getting late: due in ${duration(minutes)}` : 'Getting late: due now';
+  return '';
+}
 
 export default function Production() {
   const [params, setParams] = useSearchParams();
@@ -18,6 +40,12 @@ export default function Production() {
   const [open, setOpen] = useState('');
   const [drag, setDrag] = useState(null);
   const [printAll, setPrintAll] = useState(false);
+  const [, setTick] = useState(0);
+ // Keeps the red cards up to date between refreshes
+useEffect(() => {
+  const timer = setInterval(() => setTick((t) => t + 1), REFRESH_EVERY);
+  return () => clearInterval(timer);
+}, []);
   const shift = (n) => setParams({ date: format(addDays(parseISO(date), n), 'yyyy-MM-dd') });
 
   const move = async (o, status, baker) => {
@@ -36,10 +64,11 @@ export default function Production() {
 
   return (
     <>
+      <style>{CSS}</style>
       <div className="no-print flex flex-wrap items-center gap-3">
         <div className="seggrp">
           <button className={cn('seg', date === todayISO() && 'on')} onClick={() => setParams({})}>Today</button>
-          <button className={cn('seg', date === format(addDays(new Date(), 1), 'yyyy-MM-dd') && 'on')} onClick={() => setParams({ date: format(addDays(new Date(), 1), 'yyyy-MM-dd') })}>Tomorrow</button>
+          <button className={cn('seg', date === tomorrowISO() && 'on')} onClick={() => setParams({ date: tomorrowISO() })}>Tomorrow</button>
         </div>
         <button className="iconbtn" onClick={() => shift(-1)} aria-label="Previous day"><ChevronLeft size={20} /></button>
         <input type="date" className="sel" value={date} onChange={(e) => e.target.value && setParams({ date: e.target.value })} aria-label="Production date" />
@@ -58,8 +87,11 @@ export default function Production() {
                 onDragOver={(e) => e.preventDefault()} onDrop={() => { if (drag) move(drag, status); setDrag(null); }}>
                 <h3 className="flex items-center gap-2 px-1.5 pb-1.5 pt-1 text-sm font-extrabold"><span className="h-2.5 w-2.5 rounded-full" style={{ background: dot }} />{status}<span className="ml-auto text-xs muted">{list.length}</span></h3>
                 {!list.length && <div className="kempty">Nothing here</div>}
-                {list.map((o) => (
-                  <article key={o._id} className={cn('kcard cursor-grab', o.priority === 'High' && 'hi')} draggable onDragStart={() => setDrag(o)} onDragEnd={() => setDrag(null)}>
+                {list.map((o) => {
+                  const late = lateLabel(o, data.lateAlertMinutes ?? 120);
+                  return (
+                  <article key={o._id} className={cn('kcard cursor-grab', o.priority === 'High' && 'hi', late && 'alert')} draggable onDragStart={() => setDrag(o)} onDragEnd={() => setDrag(null)}>
+                    {late && <div className="kc-alert"><AlertTriangle size={14} aria-hidden="true" />{late}</div>}
                     <div className="flex items-center gap-2"><button className="text-[13px] font-extrabold text-wine" onClick={() => setOpen(o._id)}>{o.orderNumber}</button>{o.priority === 'High' && <Badge>High</Badge>}<span className="ml-auto whitespace-nowrap text-[13px] font-extrabold">{t12(o.pickupTime)}</span></div>
                     {o.items.map((i, k) => <h4 key={k} className="text-[15px] font-extrabold leading-tight">{i.qty} × {i.name} {sizeLabel(i.variant)}</h4>)}
                     <dl className="grid gap-x-2.5 gap-y-0.5 text-[12.5px] [grid-template-columns:auto_1fr]">
@@ -76,7 +108,8 @@ export default function Production() {
                       {status !== 'Collected' && <button className="btn btn-p btn-xs" onClick={() => move(o, COLS[COLS.findIndex((c) => c[0] === status) + 1][0])}>{status === 'Confirmed' ? 'Start' : status === 'In Production' ? 'Ready' : 'Collected'} →</button>}
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </section>
             );
           })}

@@ -9,7 +9,7 @@ import { cn, downloadText, fmtDate, money, money0 } from '../../utils/format.js'
 
 const RANGES = [['7d', '7 days'], ['30d', '30 days'], ['90d', '90 days'], ['365d', '12 months']];
 const AXIS = { fontSize: 11, fill: '#6E5A60' };
-const tipStyle = { borderRadius: 10, border: '1px solid #E6D8C3', fontSize: 12 };
+const tipStyle = { borderRadius: 10, border: '1px solid #CFE2F5', fontSize: 12 };
 
 function Delta({ cur, prev }) {
   if (!prev) return <span className="text-xs muted">No prior data</span>;
@@ -50,12 +50,12 @@ export default function Reports() {
             <div className="card-b h-[320px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={series} margin={{ left: 0, right: 8, top: 8 }}>
-                  <defs><linearGradient id="rv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#6E1630" stopOpacity={0.25} /><stop offset="1" stopColor="#6E1630" stopOpacity={0} /></linearGradient></defs>
-                  <CartesianGrid stroke="#E5D9C7" strokeDasharray="3 3" vertical={false} />
+                  <defs><linearGradient id="rv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#0B6BCB" stopOpacity={0.25} /><stop offset="1" stopColor="#0B6BCB" stopOpacity={0} /></linearGradient></defs>
+                  <CartesianGrid stroke="#DCEAF8" strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="date" tick={AXIS} tickFormatter={(v) => fmtDate(v, 'd MMM')} minTickGap={24} />
                   <YAxis tick={AXIS} tickFormatter={(v) => `$${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`} width={52} />
                   <Tooltip contentStyle={tipStyle} labelFormatter={(v) => (weekly ? `Week of ${fmtDate(v)}` : fmtDate(v, 'EEE d MMM'))} formatter={(v, n) => (n === 'revenue' ? [money(v), 'Revenue'] : [v, 'Orders'])} />
-                  <Area type="monotone" dataKey="revenue" stroke="#6E1630" strokeWidth={2.5} fill="url(#rv)" isAnimationActive={false} />
+                  <Area type="monotone" dataKey="revenue" stroke="#0B6BCB" strokeWidth={2.5} fill="url(#rv)" isAnimationActive={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -77,7 +77,7 @@ export default function Reports() {
               <div className="card-h"><h3>Orders {weekly ? 'per week' : 'per day'}</h3></div>
               <div className="card-b h-[260px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={series}><CartesianGrid stroke="#E5D9C7" strokeDasharray="3 3" vertical={false} /><XAxis dataKey="date" tick={AXIS} tickFormatter={(v) => fmtDate(v, 'd MMM')} minTickGap={24} /><YAxis tick={AXIS} allowDecimals={false} width={32} /><Tooltip contentStyle={tipStyle} labelFormatter={(v) => fmtDate(v)} formatter={(v) => [v, 'Orders']} /><Bar dataKey="orders" fill="#B8893B" radius={[4, 4, 0, 0]} isAnimationActive={false} /></BarChart>
+                  <BarChart data={series}><CartesianGrid stroke="#DCEAF8" strokeDasharray="3 3" vertical={false} /><XAxis dataKey="date" tick={AXIS} tickFormatter={(v) => fmtDate(v, 'd MMM')} minTickGap={24} /><YAxis tick={AXIS} allowDecimals={false} width={32} /><Tooltip contentStyle={tipStyle} labelFormatter={(v) => fmtDate(v)} formatter={(v) => [v, 'Orders']} /><Bar dataKey="orders" fill="#5AA9F0" radius={[4, 4, 0, 0]} isAnimationActive={false} /></BarChart>
                 </ResponsiveContainer>
               </div>
             </div>

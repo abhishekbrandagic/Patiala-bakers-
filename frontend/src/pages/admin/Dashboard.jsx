@@ -4,7 +4,7 @@ import { useFetch } from '../../hooks/useFetch.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { Badge, ErrorState, Skeleton } from '../../components/ui.jsx';
 import ProductImage from '../../components/ProductImage.jsx';
-import { fmtDate, fmtLong, fmtStamp, money, money0, sizeLabel, t12 } from '../../utils/format.js';
+import { bakeryDate, fmtDate, fmtLong, fmtStamp, money, money0, sizeLabel, t12 } from '../../utils/format.js';
 
 function Kpi({ label, value, sub, to, tone }) {
   return (
@@ -42,7 +42,7 @@ export default function Dashboard() {
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!d) return <div className="flex flex-col gap-5"><Skeleton className="h-28" /><div className="grid gap-3.5 [grid-template-columns:repeat(auto-fit,minmax(158px,1fr))]">{Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-[124px]" />)}</div><Skeleton className="h-80" /></div>;
   const k = d.kpis;
-  const hour = new Date().getHours();
+  const hour = bakeryDate().getHours();
   return (
     <>
       <section className="welcome flex flex-wrap items-center gap-4">

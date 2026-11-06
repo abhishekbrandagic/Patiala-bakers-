@@ -1,3 +1,4 @@
+import { WALK_IN_EMAIL } from '../config/constants.js';
 import crypto from 'node:crypto';
 import { Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
@@ -92,7 +93,7 @@ export async function createOrder({ items, customer, pickupDate, pickupTime, not
 }
 
 export async function notifyNewOrder(order, settings) {
-  if (settings.notifications.customerConfirmation && !order.confirmationEmailSent) {
+  if (settings.notifications.customerConfirmation && !order.confirmationEmailSent && order.customer.email !== WALK_IN_EMAIL) {
     const m = orderConfirmationEmail(order, settings);
     const r = await sendMail({ to: order.customer.email, ...m });
     if (r.sent) await Order.updateOne({ _id: order._id }, { confirmationEmailSent: true });

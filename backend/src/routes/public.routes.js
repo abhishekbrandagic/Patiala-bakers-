@@ -16,6 +16,7 @@ const formLimiter = rateLimit({ windowMs: 10 * 60 * 1000, limit: 15, standardHea
 // Auth & account
 r.post('/auth/register', authLimiter, validate({ body: S.registerSchema }), ah(auth.register));
 r.post('/auth/login', authLimiter, validate({ body: S.loginSchema }), ah(auth.login));
+r.post('/auth/google', authLimiter, validate({ body: S.googleSchema }), ah(auth.googleSignIn));
 r.post('/auth/logout', auth.logout);
 r.get('/auth/me', optionalAuth, auth.me);
 r.patch('/account/profile', requireAuth, validate({ body: S.profileSchema }), ah(auth.updateProfile));

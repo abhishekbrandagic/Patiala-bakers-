@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { apiError } from '../../api/client.js';
 import { Field, Logo, Spinner } from '../../components/ui.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import GoogleButton from '../../components/GoogleButton.jsx';
 import { cn } from '../../utils/format.js';
 
 const schema = z.object({ email: z.string().trim().email('Enter a valid email'), password: z.string().min(1, 'Enter your password') });
@@ -33,6 +34,7 @@ export default function Login() {
         <h1 className="text-center text-4xl text-wine-ink">Sign in</h1>
         <p className="mb-6 mt-1 text-center text-sm muted">Customers and staff sign in here.</p>
         {err && <p className="errbox mb-4" role="alert">{err}</p>}
+                <GoogleButton onError={setErr} />
         <div className="flex flex-col gap-4">
           <Field label="Email" htmlFor="le" error={errors.email?.message}><input id="le" type="email" autoComplete="email" className={cn('in', errors.email && 'err')} {...register('email')} /></Field>
           <Field label="Password" htmlFor="lp" error={errors.password?.message}><input id="lp" type="password" autoComplete="current-password" className={cn('in', errors.password && 'err')} {...register('password')} /></Field>

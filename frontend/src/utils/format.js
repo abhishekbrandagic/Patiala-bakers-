@@ -1,5 +1,17 @@
 import { format, parseISO } from 'date-fns';
 
+// Dates and times follow the bakery's time zone from Settings, not the computer's
+let bakeryTimezone;
+export const setBakeryTimezone = (timeZone) => { bakeryTimezone = timeZone || undefined; };
+export function bakeryDate(value = new Date()) {
+  const date = new Date(value);
+  if (!bakeryTimezone) return date;
+  try {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: bakeryTimezone, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23' }).formatToParts(date).map((p) => [p.type, Number(p.value)]));
+    return new Date(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+  } catch { return date; }
+}
+
 export const money = (n, currency = 'AUD') =>
   new Intl.NumberFormat('en-AU', { style: 'currency', currency, minimumFractionDigits: 2 }).format(Number(n) || 0);
 export const money0 = (n) => `$${Math.round(Number(n) || 0).toLocaleString('en-AU')}`;
@@ -11,13 +23,23 @@ export const t12 = (h) => {
 };
 export const fmtDate = (s, f = 'EEE d MMM') => (s ? format(parseISO(s), f) : '');
 export const fmtLong = (s) => fmtDate(s, 'EEEE d MMMM yyyy');
-export const fmtStamp = (d) => (d ? format(new Date(d), 'dd/MM/yyyy HH:mm') : '');
-export const fmtShort = (d) => (d ? format(new Date(d), 'd MMM yyyy') : '');
+export const fmtStamp = (d) => (d ? format(bakeryDate(d), 'dd/MM/yyyy HH:mm') : '');
+export const fmtShort = (d) => (d ? format(bakeryDate(d), 'd MMM yyyy') : '');
+export const todayISO = () => format(bakeryDate(), 'yyyy-MM-dd');
+export const tomorrowISO = () => { const d = bakeryDate(); return format(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1), 'yyyy-MM-dd'); };
 
-export const todayISO = () => format(new Date(), 'yyyy-MM-dd');
+
+// Minutes from now until a pickup, on the bakery's clock (negative once it has passed)
+export function minutesUntil(date, time) {
+  const n = bakeryDate();
+  const [y, m, d] = date.split('-').map(Number);
+  const [hh, mm] = (time || '00:00').split(':').map(Number);
+  return (Date.UTC(y, m - 1, d, hh, mm) - Date.UTC(n.getFullYear(), n.getMonth(), n.getDate(), n.getHours(), n.getMinutes())) / 60000;
+}
+
 export function relDay(s) {
   const t = todayISO();
-  const tm = format(new Date(Date.now() + 86400000), 'yyyy-MM-dd');
+  const tm = tomorrowISO();
   if (s === t) return 'Today';
   if (s === tm) return 'Tomorrow';
   return fmtDate(s);

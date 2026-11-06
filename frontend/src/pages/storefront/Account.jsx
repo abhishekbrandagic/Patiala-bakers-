@@ -111,12 +111,19 @@ function Profile() {
         <Field label="Dietary preference" htmlFor="pd" help="Shown to our team when you order."><select id="pd" className="in" {...p.register('dietaryPref')}><option value="">None</option><option>Eggless</option><option>Vegan</option><option>Gluten-free</option><option>Nut-free</option></select></Field>
         <button className="btn btn-p self-start" disabled={p.formState.isSubmitting}>{p.formState.isSubmitting && <Spinner />} Save</button>
       </form>
-      <form className="card card-b flex flex-col gap-4" onSubmit={change}>
-        <h2 className="font-sans text-lg font-extrabold">Change password</h2>
-        <Field label="Current password" htmlFor="cp" error={pw.formState.errors.currentPassword?.message}><input id="cp" type="password" autoComplete="current-password" className="in" {...pw.register('currentPassword', { required: 'Required' })} /></Field>
-        <Field label="New password" htmlFor="np" error={pw.formState.errors.newPassword?.message}><input id="np" type="password" autoComplete="new-password" className="in" {...pw.register('newPassword')} /></Field>
-        <button className="btn btn-o self-start" disabled={pw.formState.isSubmitting}>Update password</button>
-      </form>
+      {user.googleLinked ? (
+        <div className="card card-b flex flex-col gap-2">
+          <h2 className="font-sans text-lg font-extrabold">Sign-in</h2>
+          <p className="muted">You sign in with your Google account, so there's no password to manage here.</p>
+        </div>
+      ) : (
+        <form className="card card-b flex flex-col gap-4" onSubmit={change}>
+          <h2 className="font-sans text-lg font-extrabold">Change password</h2>
+          <Field label="Current password" htmlFor="cp" error={pw.formState.errors.currentPassword?.message}><input id="cp" type="password" autoComplete="current-password" className="in" {...pw.register('currentPassword', { required: 'Required' })} /></Field>
+          <Field label="New password" htmlFor="np" error={pw.formState.errors.newPassword?.message}><input id="np" type="password" autoComplete="new-password" className="in" {...pw.register('newPassword')} /></Field>
+          <button className="btn btn-o self-start" disabled={pw.formState.isSubmitting}>Update password</button>
+        </form>
+      )}
     </div>
   );
 }

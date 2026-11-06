@@ -21,6 +21,13 @@ export function AuthProvider({ children }) {
     setUser(data.user);
     return data.user;
   }, []);
+
+    const googleLogin = useCallback(async (credential) => {
+    const { data } = await api.post('/auth/google', { credential });
+    setUser(data.user);
+    return data;
+  }, []);
+
   const logout = useCallback(async () => {
     await api.post('/auth/logout').catch(() => {});
     setUser(null);
@@ -28,7 +35,7 @@ export function AuthProvider({ children }) {
 
   const can = useCallback((perm) => Boolean(user?.role === 'staff' && user.permissions?.includes(perm)), [user]);
 
-  return <Ctx.Provider value={{ user, ready, login, register, logout, setUser, can, isStaff: user?.role === 'staff' }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, ready, login, register, googleLogin, logout, setUser, can, isStaff: user?.role === 'staff' }}>{children}</Ctx.Provider>;
 }
 
 export const useAuth = () => useContext(Ctx);

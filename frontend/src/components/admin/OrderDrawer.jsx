@@ -86,7 +86,7 @@ export default function OrderDrawer({ id, onClose, onChanged, bakers = [] }) {
             {o.status === 'Cancelled' && <div className="errbox flex items-center gap-3">This order is cancelled.<button className="btn btn-o btn-xs ml-auto" onClick={() => setStatus('Confirmed')}>Reinstate</button></div>}
 
             <section className="grid gap-x-3.5 gap-y-2 text-sm [grid-template-columns:120px_1fr]">
-              <span className="font-semibold muted">Customer</span><span><b>{o.customer.name}</b><br /><a href={`tel:${o.customer.phone}`}>{o.customer.phone}</a> · <a href={`mailto:${o.customer.email}`}>{o.customer.email}</a></span>
+              <span className="font-semibold muted">Customer</span><span><b>{o.customer.name}</b><br /><a href={`tel:${o.customer.phone}`}>{o.customer.phone}</a>{o.customer.email !== 'walk-in@pos.invalid' && <> · <a href={`mailto:${o.customer.email}`}>{o.customer.email}</a></>}</span>
               <span className="font-semibold muted">Pickup</span>
               <span>
                 {resched ? (

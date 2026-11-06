@@ -10,11 +10,11 @@ import { ContactMessage } from '../models/misc.js';
 import { sendMail } from '../services/email.service.js';
 import { onlinePaymentsAvailable } from '../services/payment.service.js';
 import { isDateStr } from '../utils/time.js';
+import { env } from '../config/env.js';
 
 export async function getPublicSettings(_req, res) {
   const s = await getSettings();
-  res.json({ settings: { ...publicSettings(s), payments: { ...publicSettings(s).payments, onlineAvailable: onlinePaymentsAvailable(s) } }, categories: CATEGORIES });
-}
+  res.json({ settings: { ...publicSettings(s), payments: { ...publicSettings(s).payments, onlineAvailable: onlinePaymentsAvailable(s) }, googleClientId: env.googleClientId }, categories: CATEGORIES });}
 
 const SORTS = {
   featured: { bestseller: -1, featured: -1, sortOrder: 1, name: 1 },

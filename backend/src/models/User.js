@@ -7,7 +7,9 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true, maxlength: 120 },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     phone: { type: String, trim: true, default: '' },
-    passwordHash: { type: String, required: true, select: false },
+    // Empty for accounts that sign in with Google
+passwordHash: { type: String, select: false },
+googleId: { type: String, unique: true, sparse: true },
     role: { type: String, enum: ['customer', 'staff'], default: 'customer', index: true },
     staffRole: { type: String, enum: [...STAFF_ROLES, null], default: null },
     permissions: [{ type: String, enum: PERMISSIONS }],
@@ -15,6 +17,7 @@ const userSchema = new mongoose.Schema(
     adminNotes: { type: String, default: '' },
     active: { type: Boolean, default: true },
     lastLoginAt: Date,
+    notificationsSeenAt: Date,
   },
   { timestamps: true },
 );
@@ -23,7 +26,7 @@ userSchema.methods.setPassword = async function setPassword(pw) {
   this.passwordHash = await bcrypt.hash(pw, 12);
 };
 userSchema.methods.checkPassword = function checkPassword(pw) {
-  return bcrypt.compare(pw, this.passwordHash);
+  return this.passwordHash ? bcrypt.compare(pw, this.passwordHash) : false;
 };
 userSchema.methods.can = function can(permission) {
   if (this.role !== 'staff') return false;
@@ -44,6 +47,7 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
     staffRole: this.staffRole,
     permissions: perms,
     dietaryPref: this.dietaryPref,
+    googleLinked: Boolean(this.googleId),
     createdAt: this.createdAt,
   };
 };

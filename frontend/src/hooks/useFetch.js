@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, apiError } from '../api/client.js';
 
+// Admin pages whose lists keep themselves up to date. NotificationBell sends the signal.
+const LIVE_PAGES = ['/admin/dashboard', '/admin/orders', '/admin/production', '/admin/calendar', '/admin/products', '/admin/enquiries', '/admin/customers'];
+
 // Small data-loading hook: GET `url` with `params`, re-runs when the serialised params change.
 export function useFetch(url, params) {
   const [data, setData] = useState(null);
@@ -12,18 +15,24 @@ export function useFetch(url, params) {
   const load = useCallback(async ({ silent } = {}) => {
     if (!url) return;
     const n = ++seq.current;
-    if (!silent) setLoading(true);
-    setError(null);
+    if (!silent) { setLoading(true); setError(null); }
     try {
       const { data: d } = await api.get(url, { params: JSON.parse(key) });
-      if (n === seq.current) setData(d);
+      if (n === seq.current) { setData(d); setError(null); }
     } catch (e) {
-      if (n === seq.current) setError(apiError(e).message);
+      // A background refresh that fails keeps what's on screen and tries again next time
+      if (n === seq.current && !silent) setError(apiError(e).message);
     } finally {
       if (n === seq.current) setLoading(false);
     }
   }, [url, key]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!LIVE_PAGES.includes(url)) return undefined;
+    const refresh = () => load({ silent: true });
+    window.addEventListener('admin:refresh', refresh);
+    return () => window.removeEventListener('admin:refresh', refresh);
+  }, [url, load]);
   return { data, error, loading, reload: load, setData };
 }

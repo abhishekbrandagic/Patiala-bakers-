@@ -28,7 +28,7 @@ export default function Products() {
   // Deep link from dashboard / AI assistant: /admin/products?edit=<id>
   useEffect(() => {
     const id = params.get('edit');
-    if (id && data?.items) {
+    if (id && data?.items && !editing) {
       const p = data.items.find((x) => x._id === id);
       if (p) setEditing(p); else api.get('/admin/products', { params: { archived: '1' } }).then(({ data: d }) => { const a = d.items.find((x) => x._id === id); if (a) setEditing(a); });
     }

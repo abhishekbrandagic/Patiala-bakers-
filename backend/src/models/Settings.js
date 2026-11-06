@@ -1,11 +1,21 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const optionSchema = new mongoose.Schema({ name: String, price: { type: Number, default: 0, min: 0 }, active: { type: Boolean, default: true } }, { _id: false });
-const daySchema = new mongoose.Schema({ closed: Boolean, open: String, close: String }, { _id: false });
+const optionSchema = new mongoose.Schema(
+  {
+    name: String,
+    price: { type: Number, default: 0, min: 0 },
+    active: { type: Boolean, default: true },
+  },
+  { _id: false },
+);
+const daySchema = new mongoose.Schema(
+  { closed: Boolean, open: String, close: String },
+  { _id: false },
+);
 
 const settingsSchema = new mongoose.Schema(
   {
-    key: { type: String, default: 'main', unique: true },
+    key: { type: String, default: "main", unique: true },
     business: {
       name: String,
       tagline: String,
@@ -15,9 +25,9 @@ const settingsSchema = new mongoose.Schema(
       abn: String,
       announcement: String,
     },
-    currency: { type: String, default: 'AUD' },
-    locale: { type: String, default: 'en-AU' },
-    timezone: { type: String, default: 'Australia/Melbourne' },
+    currency: { type: String, default: "AUD" },
+    locale: { type: String, default: "en-AU" },
+    timezone: { type: String, default: "Australia/Melbourne" },
     // index 0 = Sunday
     hours: { type: [daySchema], default: [] },
     slotMinutes: { type: Number, default: 60 },
@@ -27,7 +37,7 @@ const settingsSchema = new mongoose.Schema(
     // Lead times in hours per category
     prepHours: {
       cakes: { type: Number, default: 48 },
-      'custom-cakes': { type: Number, default: 120 },
+      "custom-cakes": { type: Number, default: 120 },
       sweets: { type: Number, default: 24 },
       snacks: { type: Number, default: 4 },
       breads: { type: Number, default: 4 },
@@ -37,13 +47,13 @@ const settingsSchema = new mongoose.Schema(
     blockedSlots: [{ date: String, time: String, reason: String, _id: false }],
     payments: {
       depositPercent: { type: Number, default: 50, min: 0, max: 100 },
-      depositRequiredFor: { type: [String], default: ['custom-cakes'] },
+      depositRequiredFor: { type: [String], default: ["custom-cakes"] },
       payAtPickup: { type: Boolean, default: true },
       onlineEnabled: { type: Boolean, default: false },
     },
     fees: {
       serviceFee: { type: Number, default: 0, min: 0 },
-      serviceFeeLabel: { type: String, default: 'Service fee' },
+      serviceFeeLabel: { type: String, default: "Service fee" },
     },
     cakeOptions: {
       sponges: [optionSchema],
@@ -57,7 +67,9 @@ const settingsSchema = new mongoose.Schema(
       enquiry: { type: Boolean, default: true },
       lowStock: { type: Boolean, default: true },
       customerConfirmation: { type: Boolean, default: true },
-      staffEmail: { type: String, default: '' },
+      staffEmail: { type: String, default: "" },
+      sound: { type: Boolean, default: true },
+      lateAlertHours: { type: Number, default: 2, min: 0, max: 72 },
     },
     chatWidget: {
       enabled: { type: Boolean, default: true },
@@ -72,6 +84,6 @@ const settingsSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-settingsSchema.set('toJSON', { versionKey: false });
+settingsSchema.set("toJSON", { versionKey: false });
 
-export const Settings = mongoose.model('Settings', settingsSchema);
+export const Settings = mongoose.model("Settings", settingsSchema);

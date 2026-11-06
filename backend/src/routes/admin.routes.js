@@ -9,12 +9,17 @@ import * as O from '../controllers/admin.orders.controller.js';
 import * as C from '../controllers/admin.catalog.controller.js';
 import * as M from '../controllers/admin.misc.controller.js';
 import * as P from '../controllers/admin.pos.controller.js';
+import * as N from '../controllers/admin.notifications.controller.js';
 
 
 const r = Router();
 r.use(requireStaff);
 
 r.get('/dashboard', ah(M.getDashboard));
+
+// Notifications
+r.get('/notifications', ah(N.listNotifications));
+r.post('/notifications/read', ah(N.markNotificationsRead));
 
 // Orders
 r.get('/orders', can('orders'), validate({ query: S.orderQuerySchema }), ah(O.listOrders));
@@ -31,6 +36,7 @@ r.delete('/orders/:id', can('settings'), ah(O.deleteOrder));
 // POS
 r.get('/pos/products', can('orders'), ah(P.listPosProducts));
 r.post('/pos/sales', can('orders'), validate({ body: S.posSaleSchema }), ah(P.createPosSale));
+r.post('/pos/orders', can('orders'), validate({ body: S.posOrderSchema }), ah(P.createPosOrder));
 
 // Production & calendar
 r.get('/production', can('production'), ah(O.production));

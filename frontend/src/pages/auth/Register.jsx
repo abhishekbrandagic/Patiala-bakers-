@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { apiError } from '../../api/client.js';
 import { Field, Logo, Spinner } from '../../components/ui.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import GoogleButton from '../../components/GoogleButton.jsx';
 import { cn } from '../../utils/format.js';
 
 const schema = z.object({
@@ -43,6 +44,7 @@ export default function Register() {
         <h1 className="text-center text-4xl text-wine-ink">Create an account</h1>
         <p className="mb-6 mt-1 text-center text-sm muted">Track orders, reorder favourites and check out faster.</p>
         {err && <p className="errbox mb-4" role="alert">{err}</p>}
+                <GoogleButton onError={setErr} />
         <div className="flex flex-col gap-4">
           <Field label="Full name" htmlFor="rn" error={errors.name?.message}><input id="rn" autoComplete="name" className={cn('in', errors.name && 'err')} {...register('name')} /></Field>
           <Field label="Email" htmlFor="re" error={errors.email?.message}><input id="re" type="email" autoComplete="email" className={cn('in', errors.email && 'err')} {...register('email')} /></Field>

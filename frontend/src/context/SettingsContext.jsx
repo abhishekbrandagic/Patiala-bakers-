@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { api } from '../api/client.js';
+import { setBakeryTimezone } from '../utils/format.js';
 
 const Ctx = createContext(null);
 
@@ -8,6 +9,7 @@ export function SettingsProvider({ children }) {
   const load = useCallback(async () => {
     try {
       const { data } = await api.get('/settings');
+      setBakeryTimezone(data.settings?.timezone);
       setState({ settings: data.settings, categories: data.categories, loading: false, error: null });
     } catch {
       setState((s) => ({ ...s, loading: false, error: 'Could not load bakery details.' }));

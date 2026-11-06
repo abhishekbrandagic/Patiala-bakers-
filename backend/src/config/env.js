@@ -16,6 +16,7 @@ export const env = {
   mongoUri: process.env.MONGODB_URI || "",
   useMemoryDb: bool(process.env.USE_MEMORY_DB),
   jwtSecret: process.env.JWT_SECRET || "",
+  googleClientId: process.env.GOOGLE_CLIENT_ID || "",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
   seedAdminEmail: process.env.SEED_ADMIN_EMAIL || "owner@patialabakers.com.au",
   seedAdminPassword: process.env.SEED_ADMIN_PASSWORD || "ChangeMe!2026",

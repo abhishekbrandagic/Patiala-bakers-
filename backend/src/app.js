@@ -26,6 +26,8 @@ export function createApp() {
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: "cross-origin" },
+            // Lets the Google sign-in popup talk back to this page
+      crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
       // Default CSP blocks Cloudinary images, Google Fonts, Stripe etc.
       contentSecurityPolicy: false,
     }),

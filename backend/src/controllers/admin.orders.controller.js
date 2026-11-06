@@ -1,6 +1,6 @@
 import { Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
-import { ORDER_TRANSITIONS } from '../config/constants.js';
+import { ORDER_TRANSITIONS, WALK_IN_EMAIL } from '../config/constants.js';
 import { badRequest, conflict, escapeRegex, notFound, paginate, r2 } from '../utils/http.js';
 import { getSettings } from '../services/settings.service.js';
 import { applyPayment, createOrder, lowStockSync } from '../services/order.service.js';
@@ -64,7 +64,7 @@ export async function updateStatus(req, res) {
     for (const i of o.items) if (i.product) await Product.updateOne({ _id: i.product, stockQty: { $ne: null } }, { $inc: { stockQty: sign * i.qty } });
     await lowStockSync(o.items.map((i) => i.product).filter(Boolean));
   }
-  if (notify && ['Ready', 'Cancelled', 'Confirmed'].includes(status)) {
+  if (notify && o.customer.email !== WALK_IN_EMAIL && ['Ready', 'Cancelled', 'Confirmed'].includes(status)) {
     const s = await getSettings();
     sendMail({ to: o.customer.email, ...orderStatusEmail(o, s) }).catch(() => {});
   }
@@ -157,8 +157,8 @@ export async function exportOrdersCsv(req, res) {
 export async function production(req, res) {
   const s = await getSettings();
   const date = req.query.date || nowParts(s.timezone).date;
-  const orders = await Order.find({ pickupDate: date, status: { $nin: ['Cancelled', 'Pending'] }, source: { $ne: 'POS' } }).sort({ priority: 1, pickupTime: 1 }); // POS
-  res.json({ date, orders, bakers: s.bakers });
+  const orders = await Order.find({ pickupDate: date, status: { $nin: ['Cancelled', 'Pending'] } }).sort({ priority: 1, pickupTime: 1 }); // POS
+  res.json({ date, orders, bakers: s.bakers, lateAlertMinutes: Math.round((s.notifications?.lateAlertHours ?? 2) * 60) });
 }
 
 export async function calendar(req, res) {
