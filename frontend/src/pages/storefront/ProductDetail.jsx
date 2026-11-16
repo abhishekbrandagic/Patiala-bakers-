@@ -6,6 +6,7 @@ import { api, apiError } from '../../api/client.js';
 import ProductImage from '../../components/ProductImage.jsx';
 import ProductCard, { dietLabels } from '../../components/ProductCard.jsx';
 import { ErrorState, PageLoader, Qty, Spinner } from '../../components/ui.jsx';
+import { ReferenceImagesInput } from '../../components/ReferenceImages.jsx';
 import { useCart } from '../../context/CartContext.jsx';
 import { useCategoryName, useSettings } from '../../context/SettingsContext.jsx';
 import { cn, money, sizeLabel } from '../../utils/format.js';
@@ -34,6 +35,7 @@ export default function ProductDetail() {
   const [qty, setQty] = useState(1);
   const [quote, setQuote] = useState(null);
   const [quoting, setQuoting] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const load = () => {
     setData(null); setError(null);
@@ -72,7 +74,7 @@ export default function ProductDetail() {
   const msgMax = co?.maxMessageLength || 40;
 
   const addToCart = () => {
-    if (!p.orderable || issue) return;
+    if (!p.orderable || issue || uploading) return;
     add({ productId: p._id, variant, qty, options: opts });
     toast.success(`${p.name} added to your cart`);
     setOpen(true);
@@ -149,6 +151,10 @@ export default function ProductDetail() {
                   <input id="msg" className="in" maxLength={msgMax} value={opts.message} onChange={(e) => set('message', e.target.value)} placeholder="e.g. Happy Birthday Aarav" />
                   <p className="help">{opts.message?.length || 0}/{msgMax} characters · piped in chocolate or buttercream</p>
                 </div>
+                <div className="osec">
+                  <ReferenceImagesInput id="ref-photos" value={opts.referenceImages || []} onChange={(v) => set('referenceImages', v)} onBusy={setUploading} />
+                  <p className="help">Show us a cake you like and our bakers will use it as a guide.</p>
+                </div>
               </>
             )}
 
@@ -182,7 +188,7 @@ export default function ProductDetail() {
           </div>
           <Qty value={qty} onChange={(n) => setQty(Math.max(1, Math.min(50, n)))} />
           <span className="min-w-[90px] text-right text-[22px] font-extrabold text-wine num">{quoting && !priced ? <Spinner dark /> : priced ? money(priced.lineTotal) : v ? money(v.price * qty) : ''}</span>
-          <button className="btn btn-p btn-lg" disabled={!p.orderable || !!issue || quoting} onClick={addToCart}><ShoppingBag size={18} /> {p.orderable ? 'Add to cart' : 'Unavailable'}</button>
+          <button className="btn btn-p btn-lg" disabled={!p.orderable || !!issue || quoting || uploading} onClick={addToCart}><ShoppingBag size={18} /> {p.orderable ? 'Add to cart' : 'Unavailable'}</button>
         </div>
       </div>
 

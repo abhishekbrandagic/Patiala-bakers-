@@ -43,11 +43,70 @@ export const loginSchema = z.object({
 export const googleSchema = z.object({
   credential: z.string().min(20).max(4096),
 });
+// Birthday: day and month are needed, the year is optional
+const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const dobSchema = z
+  .object({
+    day: z.coerce.number().int().min(1).max(31),
+    month: z.coerce.number().int().min(1).max(12),
+    year: z
+      .preprocess(
+        (v) => (v === "" || v == null ? null : v),
+        z.coerce
+          .number()
+          .int()
+          .min(1900, "Enter a real year")
+          .max(new Date().getFullYear(), "Enter a real year")
+          .nullable(),
+      )
+      .optional(),
+  })
+  .refine(
+    (d) =>
+      d.day <= DAYS_IN_MONTH[d.month - 1] &&
+      !(
+        d.month === 2 &&
+        d.day === 29 &&
+        d.year &&
+        (d.year % 4 || (d.year % 100 === 0 && d.year % 400))
+      ),
+    "Choose a real date",
+  )
+  .nullable()
+  .optional();
+const addressSchema = z
+  .object({
+    line1: z.string().trim().max(120).optional().default(""),
+    suburb: z.string().trim().max(60).optional().default(""),
+    state: z.string().trim().max(30).optional().default(""),
+    postcode: z.string().trim().max(10).optional().default(""),
+  })
+  .nullable()
+  .optional();
+const profileExtras = {
+  dob: dobSchema,
+  address: addressSchema,
+  whatsappOptIn: z.boolean().optional(),
+};
+
 export const profileSchema = z.object({
   name,
   phone: phone.optional().or(z.literal("")),
   dietaryPref: z.string().max(60).optional(),
+  ...profileExtras,
 });
+// Admin panel: details staff add for any customer, found by their email or phone
+export const customerProfileSchema = z
+  .object({
+    name: z.string().trim().max(120).optional(),
+    email: z.string().trim().max(160).optional().default(""),
+    phone: z.string().trim().max(30).optional().default(""),
+    ...profileExtras,
+  })
+  .refine(
+    (v) => v.email.includes("@") || v.phone.replace(/\D/g, "").length >= 8,
+    "The customer needs an email or a phone number",
+  );
 export const passwordSchema = z.object({
   currentPassword: z.string().min(1),
   newPassword: password,
@@ -69,6 +128,12 @@ export const cartItemSchema = z.object({
       message: z.string().max(80).optional(),
       addons: z.array(z.string().max(60)).max(12).optional(),
       instructions: z.string().max(500).optional(),
+      referenceImages: z
+        .array(
+          z.object({ url: z.string().max(500), publicId: z.string().max(300) }),
+        )
+        .max(3, "Attach up to 3 reference photos")
+        .optional(),
     })
     .partial()
     .optional()
@@ -97,6 +162,7 @@ export const enquirySchema = z.object({
   size: z.string().trim().max(40).optional().default(""),
   servings: z.coerce.number().int().min(1, "Enter servings").max(500),
   requiredDate: dateStr,
+  pickupTime: timeStr.optional().or(z.literal("")).default(""),
   diet: z.array(z.string().max(30)).max(6).optional().default([]),
   description: z
     .string()
@@ -104,6 +170,11 @@ export const enquirySchema = z.object({
     .min(15, "Tell us a little more about your cake (15+ characters)")
     .max(4000),
   budget: z.string().max(60).optional().default(""),
+});
+
+// Admin panel version: the customer may not have an email
+export const staffEnquirySchema = enquirySchema.extend({
+  email: email.optional().or(z.literal("")).default(""),
 });
 
 export const contactSchema = z.object({
@@ -115,10 +186,21 @@ export const contactSchema = z.object({
 export const chatSchema = z.object({
   message: z.string().trim().min(1).max(500),
 });
-export const trackSchema = z.object({
-  orderNumber: z.string().trim().toUpperCase().max(20),
-  email,
-});
+// The customer proves it's their order with the email or the phone number on it
+export const trackSchema = z
+  .object({
+    orderNumber: z.string().trim().toUpperCase().max(20),
+    contact: z.string().trim().max(160).optional(),
+    email: z.string().trim().max(160).optional(), // older form
+  })
+  .transform(({ orderNumber, contact, email: old }) => ({
+    orderNumber,
+    contact: (contact || old || "").trim(),
+  }))
+  .refine((v) => v.contact.length >= 3, {
+    message: "Enter the email or phone number used on the order",
+    path: ["contact"],
+  });
 
 // ── Admin: products ──
 const variantSchema = z.object({
@@ -237,26 +319,39 @@ export const manualOrderSchema = z.object({
   paymentStatus: z.enum(PAYMENT_STATUSES).optional(),
 });
 
+// Staff discount: a percentage or a fixed dollar amount
+const discountSchema = z
+  .object({
+    mode: z.enum(["%", "$"]),
+    value: z.coerce.number().min(0).max(100000),
+  })
+  .optional();
+
+const posPhone = z
+  .string()
+  .trim()
+  .refine(
+    (v) => /^[+()\d\s-]+$/.test(v) && v.replace(/\D/g, "").length === 10,
+    "Enter a 10-digit phone number",
+  );
+const posCustomer = z.object({
+  name,
+  phone: posPhone,
+  email: email.optional().or(z.literal("")),
+});
+
 export const posSaleSchema = z.object({
   items: z.array(cartItemSchema).min(1, "Add at least one item").max(40),
   paymentMethod: z.enum(["cash", "card_in_store", "bank_transfer"]),
-  customerName: z.string().trim().max(120).optional().default(""),
+  customer: posCustomer,
+  notes: z.string().max(1000).optional().default(""),
   cashTendered: z.coerce.number().min(0).max(100000).optional(),
+  discount: discountSchema,
   idempotencyKey: z.string().min(8).max(80),
 });
-
-const posPhone = phone.refine((v) => {
-  const n = v.replace(/\D/g, "").length;
-  return n >= 8 && n <= 15;
-}, "Enter a valid phone number");
-
 export const posOrderSchema = z.object({
   items: z.array(cartItemSchema).min(1, "Add at least one item").max(40),
-  customer: z.object({
-    name,
-    phone: posPhone,
-    email: email.optional().or(z.literal("")),
-  }),
+  customer: posCustomer,
   pickupDate: dateStr,
   pickupTime: timeStr,
   notes: z.string().max(1000).optional().default(""),
@@ -268,6 +363,7 @@ export const posOrderSchema = z.object({
     .positive("Enter the deposit amount")
     .max(100000)
     .optional(),
+  discount: discountSchema,
   idempotencyKey: z.string().min(8).max(80),
 });
 
@@ -292,9 +388,15 @@ export const quoteSchema = z.object({
   send: z.boolean().optional().default(true),
 });
 export const convertSchema = z.object({
-  pickupTime: timeStr,
+  finalPrice: z.coerce
+    .number()
+    .positive("Enter the final price")
+    .max(100000)
+    .optional(),
+  pickupTime: timeStr.optional(),
   pickupDate: dateStr.optional(),
   depositPaid: z.boolean().optional().default(false),
+  discount: discountSchema,
   variant: z.string().max(40).optional(),
 });
 

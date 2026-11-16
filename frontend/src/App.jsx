@@ -28,6 +28,7 @@ const Customers = lazy(() => import('./pages/admin/Customers.jsx'));
 const Reports = lazy(() => import('./pages/admin/Reports.jsx'));
 const Assistant = lazy(() => import('./pages/admin/Assistant.jsx'));
 const Settings = lazy(() => import('./pages/admin/Settings.jsx'));
+const Messages = lazy(() => import('./pages/admin/Messages.jsx'));
 
 function NotFound() {
   return (
@@ -74,6 +75,7 @@ export default function App() {
         <Route path="reports" element={A('reports', <Reports />)} />
         <Route path="assistant" element={A('ai', <Assistant />)} />
         <Route path="settings" element={S(<Settings />)} />
+        <Route path="messages" element={A('customers', <Messages />)} />
       </Route>
     </Routes>
   );

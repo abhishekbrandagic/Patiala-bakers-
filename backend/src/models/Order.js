@@ -18,6 +18,7 @@ const lineSchema = new mongoose.Schema(
       message: String,
       addons: [String],
       instructions: String,
+      referenceImages: [{ url: String, publicId: String, _id: false }],
     },
     diet: [String],
     priceBreakdown: [{ label: String, amount: Number, _id: false }],
@@ -61,6 +62,8 @@ const orderSchema = new mongoose.Schema(
     notes: { type: String, default: '' },
     subtotal: { type: Number, required: true },
     fees: { type: Number, default: 0 },
+    // Taken off subtotal + fees by staff (POS or a confirmed custom cake)
+    discount: { mode: { type: String, enum: ['%', '$'] }, value: Number, amount: Number },
     total: { type: Number, required: true },
     depositPercent: { type: Number, default: 0 },
     depositDue: { type: Number, default: 0 },
@@ -72,7 +75,9 @@ const orderSchema = new mongoose.Schema(
     status: { type: String, enum: ORDER_STATUSES, default: 'Confirmed', index: true },
     priority: { type: String, enum: PRIORITIES, default: 'Normal' },
     baker: { type: String, default: '' },
-    source: { type: String, enum: ['Online', 'Phone', 'In store', 'Enquiry','POS'], default: 'Online' },
+    source: { type: String, enum: ['Online', 'Phone', 'In store', 'Enquiry', 'POS'], default: 'Online' },
+    // Placed from the POS screen (counter sale or take-away order)
+    fromPos: { type: Boolean, default: false },
     enquiry: { type: mongoose.Schema.Types.ObjectId, ref: 'Enquiry' },
     enquiryRef: String,
     internalNotes: { type: String, default: '' },

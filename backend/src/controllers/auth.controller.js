@@ -1,14 +1,29 @@
-import { OAuth2Client } from 'google-auth-library';
-import { User } from '../models/User.js';
-import { env } from '../config/env.js';
-import { Cart } from '../models/misc.js';
-import { AppError, badRequest, conflict, forbidden, unauthorized } from '../utils/http.js';
-import { clearSession, issueSession } from '../middleware/auth.js';
+import { OAuth2Client } from "google-auth-library";
+import { User } from "../models/User.js";
+import { env } from "../config/env.js";
+import { Cart } from "../models/misc.js";
+import {
+  AppError,
+  badRequest,
+  conflict,
+  forbidden,
+  unauthorized,
+} from "../utils/http.js";
+import { clearSession, issueSession } from "../middleware/auth.js";
+import {
+  findProfile,
+  profileView,
+  saveProfile,
+} from "../services/customerProfile.service.js";
 
 export async function register(req, res) {
   const { name, email, phone, password } = req.body;
-  if (await User.exists({ email })) throw conflict('An account with that email already exists. Try signing in.', { fields: { email: 'Already registered' } });
-  const user = new User({ name, email, phone: phone || '', role: 'customer' });
+  if (await User.exists({ email }))
+    throw conflict(
+      "An account with that email already exists. Try signing in.",
+      { fields: { email: "Already registered" } },
+    );
+  const user = new User({ name, email, phone: phone || "", role: "customer" });
   await user.setPassword(password);
   await user.save();
   issueSession(res, user);
@@ -17,9 +32,13 @@ export async function register(req, res) {
 
 export async function login(req, res) {
   const { email, password } = req.body;
-  const user = await User.findOne({ email }).select('+passwordHash');
-  if (user?.googleId) throw unauthorized('This account signs in with Google. Use the Google button.');
-  if (!user || !user.active || !(await user.checkPassword(password))) throw unauthorized('Email or password is incorrect.');
+  const user = await User.findOne({ email }).select("+passwordHash");
+  if (user?.googleId)
+    throw unauthorized(
+      "This account signs in with Google. Use the Google button.",
+    );
+  if (!user || !user.active || !(await user.checkPassword(password)))
+    throw unauthorized("Email or password is incorrect.");
   user.lastLoginAt = new Date();
   await user.save();
   issueSession(res, user);
@@ -33,24 +52,33 @@ const googleClient = new OAuth2Client();
  * account is matched by Google's user id, then by verified email for a first sign-in.
  */
 export async function googleSignIn(req, res) {
-  if (!env.googleClientId) throw new AppError(503, 'Google sign-in is not set up yet.');
+  if (!env.googleClientId)
+    throw new AppError(503, "Google sign-in is not set up yet.");
 
   let payload;
   try {
-    const ticket = await googleClient.verifyIdToken({ idToken: req.body.credential, audience: env.googleClientId });
+    const ticket = await googleClient.verifyIdToken({
+      idToken: req.body.credential,
+      audience: env.googleClientId,
+    });
     payload = ticket.getPayload();
   } catch {
-    throw unauthorized('Google sign-in failed. Please try again.');
+    throw unauthorized("Google sign-in failed. Please try again.");
   }
-  if (!payload?.sub || !payload.email || !payload.email_verified) throw unauthorized('Your Google email address is not verified.');
+  if (!payload?.sub || !payload.email || !payload.email_verified)
+    throw unauthorized("Your Google email address is not verified.");
 
   const email = payload.email.toLowerCase();
-  let user = await User.findOne({ googleId: payload.sub }).select('+passwordHash');
-  if (!user) user = await User.findOne({ email }).select('+passwordHash');
+  let user = await User.findOne({ googleId: payload.sub }).select(
+    "+passwordHash",
+  );
+  if (!user) user = await User.findOne({ email }).select("+passwordHash");
 
   // Admin accounts keep their password, so a Google account alone can't open the admin panel
-  if (user?.role === 'staff') throw forbidden('Staff accounts sign in with email and password.');
-  if (user && !user.active) throw forbidden('This account is not active. Please contact the bakery.');
+  if (user?.role === "staff")
+    throw forbidden("Staff accounts sign in with email and password.");
+  if (user && !user.active)
+    throw forbidden("This account is not active. Please contact the bakery.");
 
   let created = false;
   if (user) {
@@ -61,7 +89,12 @@ export async function googleSignIn(req, res) {
       user.passwordHash = undefined;
     }
   } else {
-    user = new User({ name: (payload.name || email.split('@')[0]).slice(0, 120), email, googleId: payload.sub, role: 'customer' });
+    user = new User({
+      name: (payload.name || email.split("@")[0]).slice(0, 120),
+      email,
+      googleId: payload.sub,
+      role: "customer",
+    });
     created = true;
   }
   user.lastLoginAt = new Date();
@@ -88,15 +121,48 @@ export function me(req, res) {
 }
 
 export async function updateProfile(req, res) {
-  Object.assign(req.user, req.body);
+  const { dob, address, whatsappOptIn, ...account } = req.body;
+  Object.assign(req.user, account);
   await req.user.save();
-  res.json({ user: req.user.toSafeJSON() });
+  // Birthday, address and WhatsApp consent live in the customer's profile, which the bakery can see
+  const extras = {};
+  if (dob !== undefined) extras.dob = dob;
+  if (address !== undefined) extras.address = address;
+  if (whatsappOptIn !== undefined) extras.whatsappOptIn = whatsappOptIn;
+  if (req.user.role !== "customer")
+    return res.json({ user: req.user.toSafeJSON(), profile: null });
+  const profile = await saveProfile(
+    { user: req.user._id, email: req.user.email, phone: req.user.phone },
+    {
+      name: req.user.name,
+      email: req.user.email,
+      phone: req.user.phone,
+      ...extras,
+    },
+    "customer",
+  );
+  res.json({ user: req.user.toSafeJSON(), profile: profileView(profile) });
+}
+
+export async function profileDetails(req, res) {
+  const profile = await findProfile({
+    user: req.user._id,
+    email: req.user.email,
+    phone: req.user.phone,
+  });
+  res.json({ profile: profileView(profile) });
 }
 
 export async function changePassword(req, res) {
-  const user = await User.findById(req.user._id).select('+passwordHash');
-  if (user.googleId) throw badRequest('This account signs in with Google, so it has no password to change.');
-  if (!(await user.checkPassword(req.body.currentPassword))) throw badRequest('Current password is incorrect.', { fields: { currentPassword: 'Incorrect password' } });
+  const user = await User.findById(req.user._id).select("+passwordHash");
+  if (user.googleId)
+    throw badRequest(
+      "This account signs in with Google, so it has no password to change.",
+    );
+  if (!(await user.checkPassword(req.body.currentPassword)))
+    throw badRequest("Current password is incorrect.", {
+      fields: { currentPassword: "Incorrect password" },
+    });
   await user.setPassword(req.body.newPassword);
   await user.save();
   res.json({ ok: true });
@@ -109,6 +175,10 @@ export async function getCart(req, res) {
 }
 
 export async function saveCart(req, res) {
-  const cart = await Cart.findOneAndUpdate({ user: req.user._id }, { items: req.body.items }, { upsert: true, new: true });
+  const cart = await Cart.findOneAndUpdate(
+    { user: req.user._id },
+    { items: req.body.items },
+    { upsert: true, new: true },
+  );
   res.json({ items: cart.items });
 }

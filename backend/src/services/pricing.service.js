@@ -1,8 +1,12 @@
 import mongoose from 'mongoose';
 import { Product } from '../models/Product.js';
 import { r2 } from '../utils/http.js';
+import { cleanReferenceImages } from './upload.service.js';
 
 const findOpt = (list, name) => list.find((o) => o.active !== false && o.name === name);
+
+// Custom and made-to-order items have to be baked, so they can't be sold straight off the counter
+export const needsMaking = (product) => Boolean(product.customisable || product.stockStatus === 'Made to order');
 
 export function leadHoursFor(product, settings) {
   if (product.prepHours != null) return product.prepHours;
@@ -22,6 +26,8 @@ export async function priceItems(items, settings) {
   const lines = [];
   const issues = [];
   let maxLeadHours = 0;
+  let makeLeadHours = 0;
+  const toMake = [];
 
   for (const item of items) {
     const lineId = item.id || item.productId;
@@ -79,12 +85,16 @@ export async function priceItems(items, settings) {
       const msg = String(o.message || '').trim();
       if (msg.length > (opts.maxMessageLength || 40)) bad = `Cake message must be ${opts.maxMessageLength} characters or fewer.`;
       options.message = msg;
+      const references = cleanReferenceImages(o.referenceImages);
+      if (references === null) bad = `A reference photo for ${p.name} couldn't be used. Please remove it and upload it again.`;
+      else if (references.length) options.referenceImages = references;
     }
     options.instructions = String(o.instructions || '').trim().slice(0, 500);
     if (bad) { fail(bad); continue; }
 
     unit = r2(unit);
     maxLeadHours = Math.max(maxLeadHours, leadHoursFor(p, settings));
+    if (needsMaking(p)) { makeLeadHours = Math.max(makeLeadHours, leadHoursFor(p, settings)); toMake.push(p.name); }
     lines.push({
       id: lineId,
       product: p._id,
@@ -108,5 +118,5 @@ export async function priceItems(items, settings) {
   const total = r2(subtotal + fees);
   const depositCategories = settings.payments?.depositRequiredFor || [];
   const depositRequired = lines.some((l) => depositCategories.includes(l.category));
-  return { lines, issues, subtotal, fees, feeLabel: settings.fees?.serviceFeeLabel || 'Service fee', total, maxLeadHours, depositRequired };
+  return { lines, issues, subtotal, fees, feeLabel: settings.fees?.serviceFeeLabel || 'Service fee', total, maxLeadHours, makeLeadHours, toMake: [...new Set(toMake)], depositRequired };
 }

@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext.jsx';
 import { Drawer, EmptyState, Qty, Spinner } from './ui.jsx';
 import ProductImage from './ProductImage.jsx';
 import { money, sizeLabel } from '../utils/format.js';
+import { ReferenceImageList } from './ReferenceImages.jsx';
 
 export function lineSummary(o = {}) {
   const parts = [];
@@ -47,6 +48,7 @@ export default function CartDrawer() {
               <div className="flex gap-2"><b className="flex-1 text-[14.5px]">{l?.name || (issue ? 'Unavailable item' : 'Loading…')}</b><b className="num text-sm">{l ? money(l.lineTotal) : ''}</b></div>
               <span className="text-[12.5px] muted">{sizeLabel(it.variant)}{lineSummary(it.options) && ` · ${lineSummary(it.options)}`}</span>
               {it.options?.message && <span className="text-[12.5px] muted">Message: “{it.options.message}”</span>}
+              <ReferenceImageList images={it.options?.referenceImages} size={40} />
               {issue && <span className="ferr !mt-0">{issue.message}</span>}
               <div className="mt-1 flex items-center gap-2">
                 <Qty small value={it.qty} min={1} onChange={(q) => setQty(it.id, q)} />
@@ -59,4 +61,4 @@ export default function CartDrawer() {
       })}
     </Drawer>
   );
-}
+} 

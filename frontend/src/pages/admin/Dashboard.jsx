@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, CakeSlice, ChefHat, ClipboardList, Plus } from 'lucide-react';
 import { useFetch } from '../../hooks/useFetch.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { Badge, ErrorState, Skeleton } from '../../components/ui.jsx';
 import ProductImage from '../../components/ProductImage.jsx';
+import CustomerCard from '../../components/admin/CustomerCard.jsx';
+import { fmtDob, inDaysLabel } from '../../utils/dob.js';
 import { bakeryDate, fmtDate, fmtLong, fmtStamp, money, money0, sizeLabel, t12 } from '../../utils/format.js';
 
 function Kpi({ label, value, sub, to, tone }) {
@@ -12,6 +15,27 @@ function Kpi({ label, value, sub, to, tone }) {
       <span className="l">{label}</span><span className="v">{value}</span>
       {sub && <span className={`text-xs font-semibold ${tone === 'up' ? 'text-ok' : tone === 'down' ? 'text-bad' : 'text-mute'}`}>{sub}</span>}
     </Link>
+  );
+}
+
+// Customers with a birthday in the next 7 days, ready for a WhatsApp wish later
+function Birthdays() {
+  const { data, error } = useFetch('/admin/birthdays', { days: 7 });
+  const [open, setOpen] = useState(null);
+  return (
+    <div className="card">
+      <div className="card-h"><h3 className="flex-1">Upcoming birthdays</h3><span className="text-xs font-bold muted">Next 7 days</span></div>
+      <div className="card-b">
+        {error ? <p className="text-sm text-bad">{error}</p> : !data ? <Skeleton className="h-24" /> : !data.items.length ? <p className="py-6 text-center text-sm muted">No birthdays in the next 7 days.</p> : data.items.slice(0, 8).map((b) => (
+          <button key={b.id} type="button" className="mini" onClick={() => setOpen(b)}>
+            <span className="w-[78px] flex-none text-[13px] font-extrabold">{inDaysLabel(b.inDays)}<span className="block text-[11.5px] font-semibold muted">{fmtDob({ day: b.dob.day, month: b.dob.month })}</span></span>
+            <span className="min-w-0 flex-1"><span className="nm block truncate text-sm font-bold">{b.name || b.phone || b.email}</span><span className="block truncate text-xs muted">{[b.phone, b.turning ? `turns ${b.turning}` : ''].filter(Boolean).join(' · ')}</span></span>
+            {b.whatsapp.optIn ? <Badge cls="b-ok">WhatsApp OK</Badge> : <Badge cls="b-mute">No consent</Badge>}
+          </button>
+        ))}
+      </div>
+      <CustomerCard open={Boolean(open)} onClose={() => setOpen(null)} email={open?.email} phone={open?.phone} name={open?.name} />
+    </div>
   );
 }
 
@@ -70,6 +94,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr))]">
+        {can('customers') && <Birthdays />}
         <div className="card">
           <div className="card-h"><h3 className="flex-1">Production queue</h3><Link to="/admin/production" className="btn btn-ghost btn-xs">Board <ArrowRight size={13} /></Link></div>
           <div className="card-b">

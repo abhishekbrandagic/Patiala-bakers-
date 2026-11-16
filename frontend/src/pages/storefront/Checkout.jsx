@@ -13,6 +13,7 @@ import { useCart } from '../../context/CartContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useSettings } from '../../context/SettingsContext.jsx';
 import { cn, fmtDate, fmtLong, money, sizeLabel, t12, uid } from '../../utils/format.js';
+import { ReferenceImageList } from '../../components/ReferenceImages.jsx';
 
 const schema = z.object({
   name: z.string().trim().min(2, 'Enter your name'),
@@ -193,6 +194,7 @@ export default function Checkout() {
                       <b>{it.qty} × {l?.name || 'Unavailable item'}</b>
                       <p className="text-xs muted">{sizeLabel(it.variant)}{lineSummary(it.options) && ` · ${lineSummary(it.options)}`}</p>
                       {it.options?.message && <p className="text-xs muted">“{it.options.message}”</p>}
+                      <div className="mt-1.5"><ReferenceImageList images={it.options?.referenceImages} size={40} /></div>
                       {issue && <p className="text-xs font-bold text-bad">{issue.message}</p>}
                     </div>
                     <b className="text-sm num">{l ? money(l.lineTotal) : '—'}</b>

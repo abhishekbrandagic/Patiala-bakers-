@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Mail, MapPin, Menu, Phone, ShoppingBag, User, X } from 'lucide-react';
+import { LayoutDashboard, Mail, MapPin, Menu, Package, Phone, ShoppingBag, User, X } from 'lucide-react';
 import { Logo } from '../components/ui.jsx';
 import CartDrawer from '../components/CartDrawer.jsx';
 import ChatWidget from '../components/ChatWidget.jsx';
@@ -22,6 +22,54 @@ function NavItem({ to, label, end, onClick }) {
   return <NavLink to={to} onClick={onClick} className={() => `nl ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}>{label}</NavLink>;
 }
 
+const ACCOUNT_MENU_CSS = `
+.am { position: relative; }
+.am-panel { position: absolute; z-index: 60; top: 100%; right: 0; padding-top: 8px; }
+.am-list { min-width: 210px; padding: 6px; background: #fff; border: 1px solid #EADFD2; border-radius: 14px; box-shadow: 0 14px 34px rgba(58,27,34,.16); animation: am-in .14s ease-out; }
+@keyframes am-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.am-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; font-size: 14px; font-weight: 700; color: #3A1B22; text-decoration: none; }
+.am-item:hover, .am-item:focus-visible { background: #FBF4EA; }
+@media (prefers-reduced-motion: reduce) { .am-list { animation: none; } }
+`;
+
+// The person icon opens a small menu: the account (or sign in) and order tracking
+function AccountMenu({ user }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef(null);
+  const timer = useRef(null);
+  const pointer = useRef('');
+  const loc = useLocation();
+  useEffect(() => setOpen(false), [loc.pathname]);
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  // Opens on hover with a mouse; a short delay stops it closing while moving onto the menu.
+  // A tap or the keyboard opens and closes it instead.
+  const enter = (e) => { if (e.pointerType !== 'mouse') return; clearTimeout(timer.current); setOpen(true); };
+  const leave = (e) => { if (e.pointerType !== 'mouse') return; timer.current = setTimeout(() => setOpen(false), 180); };
+
+  return (
+    <div className="am" ref={box} onPointerEnter={enter} onPointerLeave={leave}>
+      <style>{ACCOUNT_MENU_CSS}</style>
+      <button type="button" className="iconbtn" aria-label="Account menu" aria-haspopup="true" aria-expanded={open} onPointerDown={(e) => { pointer.current = e.pointerType; }} onClick={() => setOpen((o) => (pointer.current === 'mouse' ? true : !o))}><User size={21} /></button>
+      {open && (
+        <div className="am-panel">
+          <div className="am-list">
+            <Link to={user ? '/account' : '/login'} className="am-item"><User size={18} aria-hidden="true" /> {user ? 'My account' : 'Sign in'}</Link>
+            <Link to="/track" className="am-item"><Package size={18} aria-hidden="true" /> Track your order</Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SiteLayout() {
   const { count, setOpen } = useCart();
   const { user, isStaff } = useAuth();
@@ -41,10 +89,10 @@ export default function SiteLayout() {
           <nav className="hidden flex-1 flex-wrap justify-center gap-0.5 xl:flex" aria-label="Main">{NAV.map(([to, l, e]) => <NavItem key={to} to={to} label={l} end={e} />)}</nav>
           <span className="flex-1 xl:hidden" />
           {isStaff && <Link to="/admin" className="btn btn-o btn-sm hidden sm:inline-flex"><LayoutDashboard size={16} /> Admin</Link>}
-          <Link to={user ? '/account' : '/login'} className="iconbtn" aria-label={user ? 'My account' : 'Sign in'}><User size={21} /></Link>
+          <AccountMenu user={user} />
           <button className="iconbtn" onClick={() => setOpen(true)} aria-label={`Open cart, ${count} items`}>
             <ShoppingBag size={21} />
-            {count > 0 && <span className="absolute right-0.5 top-1 flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-gold px-1 text-[11px] font-extrabold text-[#2A1606]">{count}</span>}
+            {count > 0 && <span className="absolute right-0.5 top-1 flex h-[19px] min-w-[19px] items-center justify-center rounded-full bg-gold px-1 text-[11px] font-extrabold text-[#ffffff]">{count}</span>}
           </button>
           <button className="iconbtn xl:hidden" onClick={() => setMenu((m) => !m)} aria-expanded={menu} aria-label="Menu">{menu ? <X size={22} /> : <Menu size={22} />}</button>
         </div>
@@ -53,7 +101,7 @@ export default function SiteLayout() {
 
       <main id="main" className="flex-1"><Outlet /></main>
 
-      <footer className="bg-wine-d pb-7 pt-16 text-[#E9D7C6]">
+      <footer className="bg-[#111111] pb-7 pt-16 text-[#D4D4D4]">
         <div className="wrap grid gap-9 [grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr))]">
           <div>
             <Logo light />

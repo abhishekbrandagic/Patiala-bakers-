@@ -17,6 +17,7 @@ import {
   ExternalLink,
   LayoutDashboard,
   LogOut,
+  Mail,
   Package,
   RefreshCw,
   Settings,
@@ -29,7 +30,7 @@ import { useSettings } from "../context/SettingsContext.jsx";
 import { api } from "../api/client.js";
 import { PageLoader } from "../components/ui.jsx";
 import NotificationBell from "../components/admin/NotificationBell.jsx";
-import AdminClock, { LiveBadge } from "../components/admin/AdminClock.jsx";
+import AdminClock, { LiveControl } from "../components/admin/AdminClock.jsx";
 import "../admin-theme.css";
 
 export const ADMIN_NAV = [
@@ -55,6 +56,12 @@ export const ADMIN_NAV = [
     perm: "products",
   },
   { to: "/admin/pricing", label: "Bulk Pricing", icon: Tags, perm: "pricing" },
+  {
+    to: "/admin/messages",
+    label: "Website Messages",
+    icon: Mail,
+    perm: "customers",
+  },
   {
     to: "/admin/enquiries",
     label: "Custom Cake Enquiries",
@@ -177,7 +184,9 @@ export default function AdminLayout() {
         <header className="no-print flex flex-wrap items-center gap-3.5 border-b border-line-2 bg-paper/85 px-4 py-4 lg:px-8">
           <h1 className="flex flex-1 items-center gap-2.5 font-sans text-[22px] font-extrabold tracking-tight">
             {current?.label || "Admin"}
-            {loc.pathname === "/admin/pos" && <LiveBadge />}
+            {loc.pathname === "/admin/production" && (
+              <LiveControl page={loc.pathname} />
+            )}
           </h1>
           <Link to="/" className="btn btn-o btn-sm lg:hidden" target="_blank">
             <ExternalLink size={14} /> Site

@@ -13,6 +13,8 @@ const enquirySchema = new mongoose.Schema(
     size: { type: String, default: '' },
     servings: { type: Number, min: 1 },
     requiredDate: { type: String, required: true }, // YYYY-MM-DD
+    pickupTime: { type: String, default: '' }, // HH:mm the customer asked for
+    finalPrice: Number, // agreed with the customer when staff confirm the order
     diet: [String],
     description: { type: String, required: true, maxlength: 4000 },
     referenceImages: [{ url: String, publicId: String, _id: false }],

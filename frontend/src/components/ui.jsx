@@ -123,13 +123,15 @@ export function Pagination({ page, pages, onPage }) {
 }
 
 export function Logo({ light, small }) {
+  const main = '/images/logo.png';
   return (
-    <span className="logo flex items-center gap-3">
-      <span className="mark" style={small ? { width: 40, height: 40, fontSize: 18 } : undefined}>PB</span>
-      <span className="flex flex-col leading-none">
-        <b className={cn('font-serif font-bold', small ? 'text-[22px]' : 'text-[26px]', light ? 'text-[#FFF4E6]' : 'text-wine')}>Patiala Bakers</b>
-        <span className={cn('mt-1 text-[10.5px] font-bold uppercase tracking-[.24em]', light ? 'text-[#D9BE8C]' : 'text-gold-d')}>Eggless cakes · Sweets</span>
-      </span>
+    <span className="logo flex items-center">
+      <img
+        src={light ? '/images/logo-light.png' : main}
+        onError={(e) => { if (!e.currentTarget.src.endsWith(main)) e.currentTarget.src = main; }}
+        alt="Patiala Bakers"
+        className={cn('block w-auto', small ? 'h-10' : 'h-16')}
+      />
     </span>
   );
 }

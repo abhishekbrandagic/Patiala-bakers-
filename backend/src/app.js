@@ -7,7 +7,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { pinoHttp } from "pino-http";
-import { env } from "./config/env.js";
+import { cloudinaryEnabled, env } from "./config/env.js";
 import { logger } from "./config/logger.js";
 import { ah } from "./utils/http.js";
 import { errorHandler, notFoundHandler } from "./middleware/error.js";
@@ -26,7 +26,7 @@ export function createApp() {
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: "cross-origin" },
-            // Lets the Google sign-in popup talk back to this page
+      // Lets the Google sign-in popup talk back to this page
       crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
       // Default CSP blocks Cloudinary images, Google Fonts, Stripe etc.
       contentSecurityPolicy: false,
@@ -64,8 +64,13 @@ export function createApp() {
   );
   app.use("/uploads", express.static(LOCAL_UPLOAD_DIR, { maxAge: "7d" }));
 
+  // Also says where uploaded photos are stored, without showing any keys
   app.get("/api/health", (_req, res) =>
-    res.json({ ok: true, time: new Date().toISOString() }),
+    res.json({
+      ok: true,
+      time: new Date().toISOString(),
+      imageStorage: cloudinaryEnabled() ? "cloudinary" : "local",
+    }),
   );
   app.use("/api", publicRoutes);
   app.use("/api/admin", adminRoutes);

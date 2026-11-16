@@ -4,13 +4,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        cream: { DEFAULT: '#FBF6EE', 2: '#F4EADB', 3: '#EFE3D0' },
-        paper: '#FFFDF9',
-        line: { DEFAULT: '#E6D8C3', 2: '#EFE5D6' },
-        ink: { DEFAULT: '#2B1A1E', 2: '#54424A' },
-        mute: '#6E5A60',
-        wine: { DEFAULT: '#6E1630', 2: '#5A1127', d: '#3B0B19', ink: '#2A0812' },
-        gold: { DEFAULT: '#B8893B', d: '#86601C', l: '#EBD6A8', bg: '#F7EDD8' },
+        // Black and white theme
+        cream: { DEFAULT: '#FFFFFF', 2: '#F2F2F2', 3: '#EBEBEB' },
+        paper: '#FFFFFF',
+        line: { DEFAULT: '#D4D4D4', 2: '#E5E5E5' },
+        ink: { DEFAULT: '#111111', 2: '#404040' },
+        mute: '#6B6B6B',
+        wine: { DEFAULT: '#111111', 2: '#000000', d: '#000000', ink: '#0A0A0A' },
+        gold: { DEFAULT: '#111111', d: '#555555', l: '#E5E5E5', bg: '#F2F2F2' },
         ok: { DEFAULT: '#2B6638', bg: '#E4EFE1' },
         warn: { DEFAULT: '#8A5506', bg: '#FAEDD2' },
         bad: { DEFAULT: '#A12428', bg: '#F8E0DD' },
@@ -21,9 +22,9 @@ export default {
         sans: ['Manrope', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
       },
       boxShadow: {
-        1: '0 1px 2px rgba(59,11,25,.06),0 2px 10px rgba(59,11,25,.05)',
-        2: '0 12px 32px rgba(59,11,25,.10),0 2px 6px rgba(59,11,25,.06)',
-        3: '0 30px 80px rgba(42,8,18,.28)',
+        1: '0 1px 2px rgba(0,0,0,.06),0 2px 10px rgba(0,0,0,.05)',
+        2: '0 12px 32px rgba(0,0,0,.10),0 2px 6px rgba(0,0,0,.06)',
+        3: '0 30px 80px rgba(0,0,0,.28)',
       },
     },
   },

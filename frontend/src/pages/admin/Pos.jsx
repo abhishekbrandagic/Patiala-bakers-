@@ -23,6 +23,16 @@ import {
   Spinner,
 } from "../../components/ui.jsx";
 import ProductImage from "../../components/ProductImage.jsx";
+import DiscountInput from "../../components/admin/DiscountInput.jsx";
+import {
+  discountAmount,
+  discountError,
+  discountPayload,
+} from "../../utils/discount.js";
+import {
+  ReferenceImageList,
+  ReferenceImagesInput,
+} from "../../components/ReferenceImages.jsx";
 import { useSettings } from "../../context/SettingsContext.jsx";
 import {
   cn,
@@ -133,10 +143,7 @@ function billRows({ variant, options = {}, priceBreakdown = [] }) {
 }
 
 // Customer details checks. The server checks the phone and email again.
-const validPhone = (value) => {
-  const digits = value.replace(/\D/g, "").length;
-  return /^[+()\d\s-]+$/.test(value) && digits >= 8 && digits <= 15;
-};
+const validPhone = (value) => /^\d{10}$/.test(value);
 const validEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
 
 const esc = (value) =>
@@ -170,10 +177,17 @@ function printReceipt(sale, settings) {
       <tr class="line"><td>${i.qty > 1 ? `Item total (${esc(i.qty)} × ${cur(i.unitPrice)})` : "Item total"}</td><td class="r">${cur(i.lineTotal)}</td></tr>`;
     })
     .join("");
+  const off = order.discount?.amount > 0 ? order.discount : null;
   const fees =
-    order.fees > 0
-      ? `<tr><td>Subtotal</td><td class="r">${cur(order.subtotal)}</td></tr><tr><td>${esc(settings?.fees?.serviceFeeLabel || "Service fee")}</td><td class="r">${cur(order.fees)}</td></tr>`
-      : "";
+    (order.fees > 0 || off
+      ? `<tr><td>Subtotal</td><td class="r">${cur(order.subtotal)}</td></tr>`
+      : "") +
+    (order.fees > 0
+      ? `<tr><td>${esc(settings?.fees?.serviceFeeLabel || "Service fee")}</td><td class="r">${cur(order.fees)}</td></tr>`
+      : "") +
+    (off
+      ? `<tr><td>Discount${off.mode === "%" ? ` (${esc(off.value)}%)` : ""}</td><td class="r">-${cur(off.amount)}</td></tr>`
+      : "");
   const cash =
     tendered == null
       ? ""
@@ -293,8 +307,16 @@ const POS_CSS = `
 .pos-line-action:hover { text-decoration: underline; text-underline-offset: 2px; }
 .pos-totals { padding-top: 8px; border-top: 1px solid #CFE2F5; font-size: 13.5px; }
 .pos-total-row { display: flex; justify-content: space-between; padding: 3px 0; color: #3D5673; font-variant-numeric: tabular-nums; }
+.pos-discount { padding: 8px 0 6px; }
 .pos-total-row.big { margin-top: 2px; font-size: 19px; font-weight: 800; color: #0F2A4A; }
-.pos-pay { display: flex; flex-direction: column; gap: 10px; }
+.pos-type-note { margin-top: 8px; font-size: 12.5px; line-height: 1.4; color: #8A5506; }
+.pp-radio:disabled { opacity: .5; cursor: not-allowed; }
+.pos-sug { position: relative; }
+.pos-sug-list { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; width: max(100%, 250px); max-height: 232px; margin: 0; padding: 4px; overflow-y: auto; list-style: none; background: #fff; border: 1px solid #CFE2F5; border-radius: 12px; box-shadow: 0 12px 30px rgba(15,42,74,.18); }
+.pos-sug-item { display: block; width: 100%; padding: 7px 10px; border-radius: 8px; cursor: pointer; text-align: left; }
+.pos-sug-item.on, .pos-sug-item:hover { background: #E3F0FC; }
+.pos-sug-name { display: block; font-size: 13.5px; font-weight: 700; color: #0F2A4A; overflow-wrap: anywhere; }
+.pos-sug-info { display: block; margin-top: 1px; font-size: 12px; color: #3D5673; overflow-wrap: anywhere; }
 
 .pp { position: fixed; inset: 0; z-index: 95; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .pp-scrim { position: absolute; inset: 0; background: rgba(15,42,74,.38); backdrop-filter: blur(3px); animation: pp-fade .18s ease-out; }
@@ -452,7 +474,9 @@ function CakeOptionsModal({
     instructions: line?.options?.instructions || "",
     vegan: Boolean(line?.options?.vegan),
     glutenFree: Boolean(line?.options?.glutenFree),
+    referenceImages: line?.options?.referenceImages || [],
   }));
+  const [uploading, setUploading] = useState(false);
   const set = (patch) => setOptions((current) => ({ ...current, ...patch }));
   const toggleAddon = (name) =>
     set({
@@ -474,6 +498,9 @@ function CakeOptionsModal({
           finish: options.finish || undefined,
           addons: options.addons,
           message: options.message.trim(),
+          ...(options.referenceImages.length
+            ? { referenceImages: options.referenceImages }
+            : {}),
         }
       : {}),
     instructions: options.instructions.trim(),
@@ -528,6 +555,7 @@ function CakeOptionsModal({
         <button
           type="button"
           className="btn btn-p pp-add"
+          disabled={uploading}
           onClick={() => leave(() => onSave(variant, clean, price, qty))}
         >
           {line ? "Update sale" : "Add to sale"} -{" "}
@@ -624,6 +652,12 @@ function CakeOptionsModal({
               onChange={(e) => set({ message: e.target.value })}
             />
           </div>
+          <ReferenceImagesInput
+            id="pos-ref-photos"
+            value={options.referenceImages}
+            onChange={(referenceImages) => set({ referenceImages })}
+            onBusy={setUploading}
+          />
         </>
       )}
       <div>
@@ -644,10 +678,131 @@ function CakeOptionsModal({
   );
 }
 
-// "Send to production": the details the bakery needs for an order it still has to make
+// A name or phone box that suggests past customers while typing
+function CustomerInput({ id, value, onPick, ...inputProps }) {
+  const [items, setItems] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  const focused = useRef(false);
+  const justPicked = useRef(false);
+
+  useEffect(() => {
+    const q = value.trim();
+    if (!focused.current || justPicked.current || q.length < 2) {
+      setItems([]);
+      setOpen(false);
+      return undefined;
+    }
+    let current = true;
+    const timer = setTimeout(() => {
+      api
+        .get("/admin/pos/customers", { params: { q } })
+        .then(({ data }) => {
+          if (!current || !focused.current) return;
+          setItems(data.items);
+          setActive(-1);
+          setOpen(data.items.length > 0);
+        })
+        .catch(() => {});
+    }, 250);
+    return () => {
+      current = false;
+      clearTimeout(timer);
+    };
+  }, [value]);
+
+  const pick = (customer) => {
+    justPicked.current = true;
+    setOpen(false);
+    onPick(customer);
+  };
+  const onKeyDown = (e) => {
+    if (!open) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      setActive((a) => (a + step + items.length) % items.length);
+    } else if (e.key === "Enter" && active >= 0) {
+      e.preventDefault();
+      pick(items[active]);
+    } else if (e.key === "Escape") {
+      e.stopPropagation();
+      setOpen(false);
+    }
+  };
+  const listId = `${id}-suggestions`;
+
+  return (
+    <div className="pos-sug">
+      <input
+        {...inputProps}
+        id={id}
+        value={value}
+        onChange={(e) => {
+          justPicked.current = false;
+          inputProps.onChange(e);
+        }}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
+        onFocus={() => {
+          focused.current = true;
+        }}
+        onBlur={(e) => {
+          focused.current = false;
+          setOpen(false);
+          inputProps.onBlur?.(e);
+        }}
+        onKeyDown={onKeyDown}
+      />
+      {open && (
+        <ul className="pos-sug-list" id={listId} role="listbox">
+          {items.map((c, i) => (
+            <li
+              key={`${c.phone}-${c.email}-${i}`}
+              id={`${listId}-${i}`}
+              role="option"
+              aria-selected={i === active}
+              className={cn("pos-sug-item", i === active && "on")}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                pick(c);
+              }}
+            >
+              <span className="pos-sug-name">{c.name}</span>
+              <span className="pos-sug-info">
+                {[
+                  c.phone,
+                  c.email,
+                  c.orders
+                    ? `${c.orders} order${c.orders === 1 ? "" : "s"}`
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// The customer form for every POS order. Dine-in is paid now and has no pickup time.
+// Notice period in words, e.g. "5 days" or "4 hours"
+const noticeText = (hours) =>
+  hours >= 24
+    ? `${Math.ceil(hours / 24)} day${Math.ceil(hours / 24) === 1 ? "" : "s"}`
+    : `${hours} hour${hours === 1 ? "" : "s"}`;
+
 function SendToProductionModal({
+  dineIn,
+  leadHours = 0,
   total,
-  initialName,
+  discountBody = {},
   saleKey,
   items,
   currency,
@@ -656,7 +811,7 @@ function SendToProductionModal({
   onClose,
 }) {
   const [form, setForm] = useState({
-    name: initialName,
+    name: "",
     phone: "",
     email: "",
     source: "In store",
@@ -664,6 +819,7 @@ function SendToProductionModal({
     payment: "none",
     method: "cash",
     deposit: "",
+    cash: "",
   });
   const [date, setDate] = useState(todayISO());
   const [slots, setSlots] = useState(null);
@@ -676,25 +832,32 @@ function SendToProductionModal({
   const touch = (field) => () =>
     setTouched((current) => ({ ...current, [field]: true }));
 
-  // Start on the first day with pickup times left
+  const [earliest, setEarliest] = useState("");
+
+  // Start on the first day with pickup times left, after any notice the cakes need
   useEffect(() => {
+    if (dineIn) return;
     api
-      .get("/availability", { params: { days: 14 } })
+      .get("/availability", { params: { days: 30, leadHours } })
       .then(({ data }) => {
         const next = data.dates?.find((d) => d.available);
-        if (next) setDate(next.date);
+        if (next) {
+          setDate(next.date);
+          setEarliest(next.date);
+        }
       })
       .catch(() => {});
-  }, []);
+  }, [dineIn, leadHours]);
   useEffect(() => {
+    if (dineIn) return;
     setSlots(null);
     setTime("");
     if (date)
       api
-        .get("/availability", { params: { date } })
+        .get("/availability", { params: { date, leadHours } })
         .then(({ data }) => setSlots(data.slots))
         .catch(() => setSlots([]));
-  }, [date]);
+  }, [date, dineIn, leadHours]);
 
   const open = (slots || []).filter((s) => s.available);
   const emptyLabel =
@@ -704,27 +867,44 @@ function SendToProductionModal({
         ? "Closed this day"
         : "No times left on this day";
   const deposit = Number(form.deposit) || 0;
-  const paidNow =
-    form.payment === "full" ? total : form.payment === "deposit" ? deposit : 0;
+  const paidNow = dineIn
+    ? total
+    : form.payment === "full"
+      ? total
+      : form.payment === "deposit"
+        ? deposit
+        : 0;
   const depositBad =
-    form.payment === "deposit" && (deposit <= 0 || deposit >= total);
+    !dineIn && form.payment === "deposit" && (deposit <= 0 || deposit >= total);
+  const cash = form.cash === "" ? null : Number(form.cash);
+  const cashShort =
+    dineIn && form.method === "cash" && cash != null && cash < total;
   const percent = settings?.payments?.depositPercent;
   const problems = {
     name: form.name.trim().length < 2 ? "Enter the customer's name." : "",
     phone: !form.phone.trim()
       ? "Enter a phone number."
       : !validPhone(form.phone.trim())
-        ? "Enter a valid phone number, with 8 to 15 digits."
+        ? "Enter a 10-digit phone number."
         : "",
     email:
       form.email.trim() && !validEmail(form.email.trim())
         ? "Enter a valid email, like name@example.com."
         : "",
-    time: !time ? "Choose a pickup time." : "",
+    time: !dineIn && !time ? "Choose a pickup time." : "",
   };
   const showProblem = (field) =>
     tried || touched[field] ? problems[field] : "";
-  const hasProblem = Object.values(problems).some(Boolean) || depositBad;
+  const hasProblem =
+    Object.values(problems).some(Boolean) || depositBad || cashShort;
+  const pickCustomer = (customer) => {
+    set({
+      name: customer.name,
+      phone: customer.phone,
+      email: customer.email,
+    });
+    setTouched((current) => ({ ...current, name: true, phone: true }));
+  };
 
   const submit = async () => {
     setTried(true);
@@ -732,23 +912,37 @@ function SendToProductionModal({
     setBusy(true);
     setError("");
     try {
-      const { data } = await api.post("/admin/pos/orders", {
-        idempotencyKey: saleKey,
-        items,
-        customer: {
-          name: form.name.trim(),
-          phone: form.phone.trim(),
-          email: form.email.trim(),
-        },
-        pickupDate: date,
-        pickupTime: time,
-        notes: form.notes,
-        source: form.source,
-        payment: form.payment,
-        ...(form.payment !== "none" ? { paymentMethod: form.method } : {}),
-        ...(form.payment === "deposit" ? { depositAmount: deposit } : {}),
-      });
-      onDone(data.order);
+      const customer = {
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+      };
+      const { data } = dineIn
+        ? await api.post("/admin/pos/sales", {
+            idempotencyKey: saleKey,
+            items,
+            customer,
+            notes: form.notes,
+            paymentMethod: form.method,
+            ...discountBody,
+            ...(form.method === "cash" && cash != null
+              ? { cashTendered: cash }
+              : {}),
+          })
+        : await api.post("/admin/pos/orders", {
+            idempotencyKey: saleKey,
+            items,
+            customer,
+            pickupDate: date,
+            pickupTime: time,
+            notes: form.notes,
+            source: form.source,
+            payment: form.payment,
+            ...(form.payment !== "none" ? { paymentMethod: form.method } : {}),
+            ...(form.payment === "deposit" ? { depositAmount: deposit } : {}),
+            ...discountBody,
+          });
+      onDone(data.order, dineIn && form.method === "cash" ? cash : null);
     } catch (e) {
       const ae = apiError(e);
       setError(
@@ -760,9 +954,13 @@ function SendToProductionModal({
 
   return (
     <Popup
-      label="Send to production"
+      label={dineIn ? "Dine-in order" : "Take away order"}
       onClose={busy ? () => {} : onClose}
-      head={<h3 className="pp-title">Confirm Order</h3>}
+      head={
+        <h3 className="pp-title">
+          {dineIn ? "Dine-in order" : "Take away order"}
+        </h3>
+      }
       footer={(leave) => (
         <div className="pp-foot-row">
           <span className="mr-auto text-sm">
@@ -796,7 +994,7 @@ function SendToProductionModal({
             htmlFor="po-name"
             error={showProblem("name")}
           >
-            <input
+            <CustomerInput
               id="po-name"
               className={cn("in", showProblem("name") && "err")}
               maxLength={120}
@@ -804,22 +1002,24 @@ function SendToProductionModal({
               value={form.name}
               onBlur={touch("name")}
               onChange={(e) => set({ name: e.target.value })}
+              onPick={pickCustomer}
             />
           </Field>
           <Field label="Phone" htmlFor="po-phone" error={showProblem("phone")}>
-            <input
+            <CustomerInput
               id="po-phone"
               type="tel"
-              inputMode="tel"
+              inputMode="numeric"
               className={cn("in", showProblem("phone") && "err")}
-              maxLength={20}
-              placeholder="0400 000 000"
+              maxLength={10}
+              placeholder="0400000000"
               autoComplete="off"
               value={form.phone}
               onBlur={touch("phone")}
               onChange={(e) =>
-                set({ phone: e.target.value.replace(/[^+()\d\s-]/g, "") })
+                set({ phone: e.target.value.replace(/\D/g, "").slice(0, 10) })
               }
+              onPick={pickCustomer}
             />
           </Field>
           <Field
@@ -838,47 +1038,61 @@ function SendToProductionModal({
               onChange={(e) => set({ email: e.target.value })}
             />
           </Field>
-          <Field label="Pickup date" htmlFor="po-date">
-            <input
-              id="po-date"
-              type="date"
-              min={todayISO()}
-              className="in"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-          </Field>
-          <Field
-            label="Pickup time"
-            htmlFor="po-time"
-            error={showProblem("time")}
-          >
-            <select
-              id="po-time"
-              className={cn("in", showProblem("time") && "err")}
-              value={time}
-              onBlur={touch("time")}
-              onChange={(e) => setTime(e.target.value)}
-            >
-              <option value="">{open.length ? "Choose…" : emptyLabel}</option>
-              {open.map((s) => (
-                <option key={s.time} value={s.time}>
-                  {t12(s.time)} · {s.remaining} left
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Source" htmlFor="po-source">
-            <select
-              id="po-source"
-              className="in"
-              value={form.source}
-              onChange={(e) => set({ source: e.target.value })}
-            >
-              <option>In store</option>
-              <option>Phone</option>
-            </select>
-          </Field>
+          {!dineIn && (
+            <>
+              <Field
+                label="Pickup date"
+                htmlFor="po-date"
+                help={
+                  leadHours > 0 && earliest
+                    ? `Needs ${noticeText(leadHours)} notice. Earliest ${fmtLong(earliest)}.`
+                    : ""
+                }
+              >
+                <input
+                  id="po-date"
+                  type="date"
+                  min={earliest || todayISO()}
+                  className="in"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </Field>
+              <Field
+                label="Pickup time"
+                htmlFor="po-time"
+                error={showProblem("time")}
+              >
+                <select
+                  id="po-time"
+                  className={cn("in", showProblem("time") && "err")}
+                  value={time}
+                  onBlur={touch("time")}
+                  onChange={(e) => setTime(e.target.value)}
+                >
+                  <option value="">
+                    {open.length ? "Choose…" : emptyLabel}
+                  </option>
+                  {open.map((s) => (
+                    <option key={s.time} value={s.time}>
+                      {t12(s.time)} · {s.remaining} left
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Source" htmlFor="po-source">
+                <select
+                  id="po-source"
+                  className="in"
+                  value={form.source}
+                  onChange={(e) => set({ source: e.target.value })}
+                >
+                  <option>In store</option>
+                  <option>Phone</option>
+                </select>
+              </Field>
+            </>
+          )}
         </div>
         <Field label="Notes (optional)" htmlFor="po-notes">
           <textarea
@@ -889,27 +1103,29 @@ function SendToProductionModal({
             onChange={(e) => set({ notes: e.target.value })}
           />
         </Field>
-        <div>
-          <span className="lbl">Payment</span>
-          <div className="seggrp">
-            {[
-              ["none", "Pay at pickup"],
-              ["full", "Paid in full"],
-              ["deposit", "Deposit"],
-            ].map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                aria-pressed={form.payment === id}
-                className={cn("seg", form.payment === id && "on")}
-                onClick={() => set({ payment: id })}
-              >
-                {label}
-              </button>
-            ))}
+        {!dineIn && (
+          <div>
+            <span className="lbl">Payment</span>
+            <div className="seggrp">
+              {[
+                ["none", "Pay at pickup"],
+                ["full", "Paid in full"],
+                ["deposit", "Deposit"],
+              ].map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={form.payment === id}
+                  className={cn("seg", form.payment === id && "on")}
+                  onClick={() => set({ payment: id })}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-        {form.payment !== "none" && (
+        )}
+        {(dineIn || form.payment !== "none") && (
           <div className="flex flex-wrap items-start gap-4">
             <div>
               <span className="lbl">Paid by</span>
@@ -927,7 +1143,31 @@ function SendToProductionModal({
                 ))}
               </div>
             </div>
-            {form.payment === "deposit" && (
+            {dineIn && form.method === "cash" && (
+              <Field
+                label="Cash received (optional)"
+                htmlFor="po-cash"
+                className="min-w-[200px]"
+                error={cashShort ? "This is less than the total." : ""}
+                help={
+                  cash != null && !cashShort
+                    ? `Change: ${money(cash - total, currency)}`
+                    : ""
+                }
+              >
+                <input
+                  id="po-cash"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.05"
+                  className={cn("in", cashShort && "err")}
+                  value={form.cash}
+                  onChange={(e) => set({ cash: e.target.value })}
+                />
+              </Field>
+            )}
+            {!dineIn && form.payment === "deposit" && (
               <Field
                 label="Deposit received"
                 htmlFor="po-deposit"
@@ -974,18 +1214,13 @@ export default function Pos() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [cart, setCart] = useState([]);
-  const [customerName, setCustomerName] = useState("");
-  const [method, setMethod] = useState("cash");
-  const [tendered, setTendered] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
   const [lastSale, setLastSale] = useState(null);
   const [editing, setEditing] = useState(null);
   const [sending, setSending] = useState(false);
   const [orderType, setOrderType] = useState("now");
+  const [discount, setDiscountState] = useState({ mode: "%", value: "" });
   // One key per sale. It survives a retry of the same cart, so a lost response can't charge twice.
   const saleKey = useRef(uid());
-  const submitting = useRef(false);
   const catsRef = useRef(null);
   const [catArrows, setCatArrows] = useState({ left: false, right: false });
 
@@ -1032,13 +1267,10 @@ export default function Pos() {
       Math.round(cart.reduce((sum, l) => sum + l.price * l.qty, 0) * 100) / 100,
     [cart],
   );
-  const cash = tendered === "" ? null : Number(tendered);
-  const cashShort = method === "cash" && cash != null && cash < total;
 
   const changeCart = (next) => {
     saleKey.current = uid();
     setCart(next);
-    setError("");
   };
   // How many more of a product this line can hold, counting the other lines in the sale
   const stockLeft = (p, lineId) =>
@@ -1145,54 +1377,12 @@ export default function Pos() {
   const resetSale = () => {
     saleKey.current = uid();
     setCart([]);
-    setCustomerName("");
-    setMethod("cash");
-    setTendered("");
+    setDiscountState({ mode: "%", value: "" });
     setOrderType("now");
-    setError("");
   };
 
-  const complete = async () => {
-    if (submitting.current || !cart.length || cashShort) return;
-    submitting.current = true;
-    setBusy(true);
-    setError("");
-    try {
-      const { data } = await api.post("/admin/pos/sales", {
-        idempotencyKey: saleKey.current,
-        items: cart.map(({ id, productId, variant, qty, options }) => ({
-          id,
-          productId,
-          variant,
-          qty,
-          options,
-        })),
-        paymentMethod: method,
-        customerName: customerName.trim(),
-        ...(method === "cash" && cash != null ? { cashTendered: cash } : {}),
-      });
-      const sale = {
-        order: data.order,
-        tendered: method === "cash" ? cash : null,
-      };
-      setLastSale(sale);
-      toast.success(`Order ${data.order.orderNumber} placed successfully`);
-      resetSale();
-      load();
-    } catch (e) {
-      const ae = apiError(e);
-      setError(
-        ae.issues?.[0]?.message || Object.values(ae.fields)[0] || ae.message,
-      );
-    } finally {
-      submitting.current = false;
-      setBusy(false);
-    }
-  };
-
-  const orderDone = (order) => {
-    const sale = { order, tendered: null };
-    setLastSale(sale);
+  const orderDone = (order, tendered = null) => {
+    setLastSale({ order, tendered });
     toast.success(`Order ${order.orderNumber} placed successfully`);
     setSending(false);
     resetSale();
@@ -1200,10 +1390,32 @@ export default function Pos() {
   };
   const serviceFee = settings?.fees?.serviceFee || 0;
 
+  // Custom cakes have to be baked, so they always need a pickup date and their notice period
+  const aheadProducts = [
+    ...new Set(
+      cart
+        .map((l) => products.find((p) => p._id === l.productId))
+        .filter((p) => p?.needsMaking),
+    ),
+  ];
+  const mustOrderAhead = aheadProducts.length > 0;
+  const makeLead = Math.max(0, ...aheadProducts.map((p) => p.leadHours || 0));
+  const aheadNames = aheadProducts.map((p) => p.name).join(", ");
+  useEffect(() => {
+    if (mustOrderAhead) setOrderType("production");
+  }, [mustOrderAhead]);
   const toMake = orderType === "production";
   const shownTotal = toMake
     ? Math.round((total + serviceFee) * 100) / 100
     : total;
+  // A changed discount is a different sale, so it gets a new key
+  const setDiscount = (next) => {
+    saleKey.current = uid();
+    setDiscountState(next);
+  };
+  const discountOff = discountAmount(shownTotal, discount);
+  const discountBad = Boolean(discountError(shownTotal, discount));
+  const finalTotal = Math.round((shownTotal - discountOff) * 100) / 100;
   const shownCategories = (categories || []).filter((c) =>
     products.some((p) => p.category === c.id),
   );
@@ -1221,8 +1433,10 @@ export default function Pos() {
       <style>{POS_CSS}</style>
       {sending && (
         <SendToProductionModal
-          total={shownTotal}
-          initialName={customerName}
+          dineIn={!toMake}
+          leadHours={toMake ? makeLead : 0}
+          total={finalTotal}
+          discountBody={discountPayload(shownTotal, discount)}
           saleKey={saleKey.current}
           items={cart.map(({ id, productId, variant, qty, options }) => ({
             id,
@@ -1377,7 +1591,6 @@ export default function Pos() {
                   type="button"
                   className={cn("pc", inSale > 0 && "has")}
                   onClick={() => add(p, p.variants[0])}
-                  disabled={busy}
                   aria-label={`Add ${p.name}, ${money(from, currency)}`}
                 >
                   <span className="pc-media">
@@ -1420,20 +1633,31 @@ export default function Pos() {
       </section>
 
       <aside className="pos-side">
-        <div>
-          <label className="sr-only" htmlFor="pos-customer">
-            Customer name
-          </label>
-          <input
-            id="pos-customer"
-            className="pp-input"
-            placeholder="Walk-in customer"
-            maxLength={120}
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-          />
-        </div>
-
+        {lastSale && (
+          <div
+            className="flex items-center justify-between gap-3 rounded-xl bg-ok-bg px-3.5 py-2.5 text-sm"
+            role="status"
+          >
+            <span>
+              <span className="block text-xs font-semibold">Order placed</span>
+              <b>{lastSale.order.orderNumber}</b>,{" "}
+              {money(lastSale.order.total, currency)}
+              {lastSale.tendered != null && (
+                <span className="block text-xs">
+                  Change{" "}
+                  {money(lastSale.tendered - lastSale.order.total, currency)}
+                </span>
+              )}
+            </span>
+            <button
+              type="button"
+              className="btn btn-p btn-sm"
+              onClick={() => printReceipt(lastSale, settings)}
+            >
+              <Printer size={15} aria-hidden="true" /> Print receipt
+            </button>
+          </div>
+        )}
         <div className="pos-type" role="group" aria-label="Order type">
           <span className="pos-type-title">Order type</span>
           <div className="pos-types">
@@ -1441,6 +1665,12 @@ export default function Pos() {
               type="button"
               aria-pressed={!toMake}
               className={cn("pp-radio", !toMake && "on")}
+              disabled={mustOrderAhead}
+              title={
+                mustOrderAhead
+                  ? "Made-to-order items can't be dine-in"
+                  : undefined
+              }
               onClick={() => setOrderType("now")}
             >
               Dine-in
@@ -1454,6 +1684,13 @@ export default function Pos() {
               Take Away
             </button>
           </div>
+          {mustOrderAhead && (
+            <p className="pos-type-note">
+              {aheadNames} {aheadProducts.length > 1 ? "need" : "needs"}{" "}
+              {noticeText(makeLead)} notice, so this is a Take Away order with a
+              pickup date.
+            </p>
+          )}
         </div>
 
         <div className="pos-table-head">
@@ -1501,6 +1738,14 @@ export default function Pos() {
                         Note: {l.options.instructions}
                       </div>
                     )}
+                    {l.options?.referenceImages?.length > 0 && (
+                      <div className="mt-1">
+                        <ReferenceImageList
+                          images={l.options.referenceImages}
+                          size={40}
+                        />
+                      </div>
+                    )}
                   </div>
                   <div className="pos-line-actions">
                     {l.custom && product && (
@@ -1538,113 +1783,48 @@ export default function Pos() {
               <span>{money(serviceFee, currency)}</span>
             </div>
           )}
+          {cart.length > 0 && (
+            <div className="pos-discount">
+              <DiscountInput
+                id="pos-discount"
+                base={shownTotal}
+                value={discount}
+                onChange={setDiscount}
+                currency={currency}
+              />
+            </div>
+          )}
+          {discountOff > 0 && (
+            <div className="pos-total-row">
+              <span>
+                Discount
+                {discount.mode === "%" ? ` (${Number(discount.value)}%)` : ""}
+              </span>
+              <span className="text-ok">−{money(discountOff, currency)}</span>
+            </div>
+          )}
           <div className="pos-total-row big">
             <span>Total</span>
-            <span>{money(shownTotal, currency)}</span>
+            <span>{money(finalTotal, currency)}</span>
           </div>
         </div>
 
-        {!toMake && (
-          <div className="pos-pay">
-            <div className="seggrp self-start">
-              {METHODS.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  aria-pressed={method === m.id}
-                  className={cn("seg", method === m.id && "on")}
-                  onClick={() => setMethod(m.id)}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-            {method === "cash" && (
-              <Field
-                htmlFor="pos-cash"
-                error={cashShort ? "This is less than the total." : ""}
-                help={
-                  cash != null && !cashShort
-                    ? `Change: ${money(cash - total, currency)}`
-                    : ""
-                }
-              >
-                <input
-                  id="pos-cash"
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="0.05"
-                  aria-label="Cash received"
-                  placeholder="Cash received (optional)"
-                  className="pp-input"
-                  value={tendered}
-                  onChange={(e) => setTendered(e.target.value)}
-                />
-              </Field>
-            )}
-          </div>
-        )}
-
-        {error && (
-          <p className="errbox" role="alert">
-            {error}
-          </p>
-        )}
-
-        {toMake ? (
-          <button
-            type="button"
-            className="btn btn-p btn-lg w-full"
-            disabled={busy || !cart.length}
-            onClick={() => setSending(true)}
-          >
-            <ChefHat size={17} /> Add Customer details
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="btn btn-p btn-lg w-full"
-            disabled={busy || !cart.length || cashShort}
-            onClick={complete}
-          >
-            {busy ? <Spinner /> : <ChefHat size={17} />} Place order
-          </button>
-        )}
+        <button
+          type="button"
+          className="btn btn-p btn-lg w-full"
+          disabled={!cart.length || discountBad}
+          onClick={() => setSending(true)}
+        >
+          <ChefHat size={17} /> Add Customer details
+        </button>
         <button
           type="button"
           className="btn btn-ghost btn-sm"
-          disabled={busy || !cart.length}
+          disabled={!cart.length}
           onClick={resetSale}
         >
           Clear sale
         </button>
-
-        {lastSale && (
-          <div
-            className="flex items-center justify-between gap-3 rounded-xl bg-ok-bg px-3.5 py-2.5 text-sm"
-            role="status"
-          >
-            <span>
-              <span className="block text-xs font-semibold">Order placed</span>
-              <b>{lastSale.order.orderNumber}</b>,{" "}
-              {money(lastSale.order.total, currency)}
-              {lastSale.tendered != null && (
-                <span className="block text-xs">
-                  Change{" "}
-                  {money(lastSale.tendered - lastSale.order.total, currency)}
-                </span>
-              )}
-            </span>
-            <button
-              type="button"
-              className="btn btn-p btn-sm"
-              onClick={() => printReceipt(lastSale, settings)}
-            >
-              <Printer size={15} aria-hidden="true" /> Print receipt
-            </button>
-          </div>
-        )}
       </aside>
     </div>
   );

@@ -34,6 +34,32 @@ export async function storeImage(file, folder = 'patiala-bakers') {
   return { url: `/uploads/${folder}/${name}`, publicId: `local:${folder}/${name}` };
 }
 
+// Cake reference photos that customers and the POS attach to an order line
+export const REFERENCE_FOLDER = 'patiala-bakers/references';
+export const MAX_REFERENCE_IMAGES = 3;
+
+/**
+ * Keeps only reference photos this bakery stored, so an order can't point at an outside address.
+ * Returns null when any photo isn't one of ours.
+ */
+export function cleanReferenceImages(list) {
+  if (list == null) return [];
+  if (!Array.isArray(list) || list.length > MAX_REFERENCE_IMAGES) return null;
+  const out = [];
+  for (const img of list) {
+    const url = String(img?.url || '');
+    const publicId = String(img?.publicId || '');
+    const local = publicId.startsWith(`local:${REFERENCE_FOLDER}/`) && /^[\w./-]+$/.test(publicId.slice(6)) && !publicId.includes('..') && url === `/uploads/${publicId.slice(6)}`;
+    const cloud = env.cloudinary.cloudName
+      && publicId.startsWith(`${REFERENCE_FOLDER}/`)
+      && url.startsWith(`https://res.cloudinary.com/${env.cloudinary.cloudName}/image/upload/`)
+      && url.includes(publicId);
+    if (!local && !cloud) return null;
+    if (!out.some((o) => o.url === url)) out.push({ url, publicId });
+  }
+  return out;
+}
+
 export async function deleteImage(publicId) {
   if (!publicId) return;
   if (publicId.startsWith('local:')) {

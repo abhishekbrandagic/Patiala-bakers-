@@ -6,6 +6,7 @@ import { api, apiError } from '../../api/client.js';
 import { useFetch } from '../../hooks/useFetch.js';
 import { Badge, Drawer, EmptyState, ErrorState, Field, PageLoader, Pagination, Skeleton } from '../../components/ui.jsx';
 import OrderDrawer from '../../components/admin/OrderDrawer.jsx';
+import { CustomerDetails } from '../../components/admin/CustomerCard.jsx';
 import { fmtDate, fmtShort, money, t12 } from '../../utils/format.js';
 
 function CustomerDrawer({ email, onClose }) {
@@ -22,6 +23,7 @@ function CustomerDrawer({ email, onClose }) {
           <div className="flex flex-col gap-5">
             <div className="flex flex-wrap gap-3 text-sm"><a className="btn btn-o btn-sm" href={`tel:${c.phone}`}><Phone size={14} /> {c.phone || '—'}</a><a className="btn btn-o btn-sm" href={`mailto:${c.email}`}><Mail size={14} /> {c.email}</a>{c.registered ? <Badge cls="b-ok">Registered</Badge> : <Badge cls="b-mute">Guest</Badge>}</div>
             <div className="grid grid-cols-3 gap-2.5">{[[c.orderCount, 'orders'], [money(c.spend), 'lifetime spend'], [d.enquiries.length, 'enquiries']].map(([v, l]) => <div key={l} className="rounded-xl bg-cream p-3"><b className="block text-xl font-extrabold">{v}</b><span className="text-xs font-semibold muted">{l}</span></div>)}</div>
+            <section><h3 className="mb-2 text-sm font-extrabold">Birthday, address & WhatsApp</h3><CustomerDetails email={c.email} phone={c.phone} name={c.name} compact /></section>
             {c.registered ? (
               <div className="flex flex-col gap-3">
                 <Field label="Dietary preference" htmlFor="dp"><input id="dp" className="in in-sm" value={notes.dietaryPref} onChange={(e) => setNotes({ ...notes, dietaryPref: e.target.value })} /></Field>

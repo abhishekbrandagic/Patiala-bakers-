@@ -34,7 +34,6 @@ const TABS = [
   ["notify", "Notifications"],
   ["chat", "Chat widget"],
   ["staff", "Staff & access"],
-  ["messages", "Website messages"],
 ];
 const PERMS = [
   "orders",
@@ -333,57 +332,6 @@ function Staff() {
   );
 }
 
-function Messages() {
-  const [items, setItems] = useState(null);
-  const load = () =>
-    api
-      .get("/admin/messages")
-      .then(({ data }) => setItems(data.items))
-      .catch(() => setItems([]));
-  useEffect(() => {
-    load();
-  }, []);
-  if (!items) return <PageLoader />;
-  if (!items.length)
-    return <div className="empty">No messages from the website yet.</div>;
-  return (
-    <div className="card card-b">
-      {items.map((m) => (
-        <div
-          key={m._id}
-          className={cn(
-            "border-b border-line-2 py-3.5 last:border-0",
-            m.handled && "opacity-60",
-          )}
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <b>{m.name}</b>
-            <a href={`mailto:${m.email}`} className="text-sm">
-              {m.email}
-            </a>
-            {m.phone && <span className="text-sm muted">{m.phone}</span>}
-            <span className="flex-1 text-right text-xs muted">
-              {fmtStamp(m.createdAt)}
-            </span>
-            {!m.handled && (
-              <button
-                className="btn btn-o btn-xs"
-                onClick={async () => {
-                  await api.post(`/admin/messages/${m._id}/handled`);
-                  load();
-                }}
-              >
-                Mark handled
-              </button>
-            )}
-          </div>
-          <p className="mt-1 whitespace-pre-wrap text-sm">{m.message}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default function Settings() {
   const { can } = useAuth();
   const { reload: reloadPublic } = useSettings();
@@ -475,13 +423,9 @@ export default function Settings() {
   };
 
   const visibleTabs = TABS.filter(([k]) =>
-    k === "staff"
-      ? can("settings")
-      : k === "messages"
-        ? can("customers")
-        : true,
+    k === "staff" ? can("settings") : true,
   );
-  const saveBar = !["staff", "messages"].includes(tab) && !ro;
+  const saveBar = tab !== "staff" && !ro;
 
   return (
     <>
@@ -496,7 +440,7 @@ export default function Settings() {
           </button>
         ))}
       </div>
-      {ro && !["messages"].includes(tab) && (
+      {ro && (
         <p className="infobox">
           You can view settings but only the owner (or staff with settings
           access) can change them.
@@ -1045,7 +989,6 @@ export default function Settings() {
         )}
       </fieldset>
       {tab === "staff" && can("settings") && <Staff />}
-      {tab === "messages" && can("customers") && <Messages />}
       {saveBar && (
         <div className="sticky bottom-0 z-10 -mx-4 flex items-center gap-3 border-t border-line bg-paper/95 px-4 py-3 backdrop-blur lg:-mx-8 lg:px-8">
           <span className="flex-1 text-sm muted">
