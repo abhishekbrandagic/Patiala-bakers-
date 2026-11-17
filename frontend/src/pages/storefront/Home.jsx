@@ -1,24 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CakeSlice, Clock, Egg, Leaf, MapPin, Sparkles, Star, WheatOff } from 'lucide-react';
+import { ArrowRight, Clock, Egg, Leaf, Sparkles, WheatOff } from 'lucide-react';
 import { api } from '../../api/client.js';
 import ProductCard, { ProductCardSkeleton } from '../../components/ProductCard.jsx';
 import ProductImage from '../../components/ProductImage.jsx';
+import Testimonials from '../../components/Testimonials.jsx';
+import Highlights from '../../components/Highlights.jsx';
 import { useSettings } from '../../context/SettingsContext.jsx';
 import { t12 } from '../../utils/format.js';
 
 const WD = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const CAT_IMG = {
-  cakes: '/images/categories/cakes.png',
-  'custom-cakes': '/images/categories/custom-cakes.png',
-  sweets: '/images/categories/sweets.png',
-  snacks: '/images/categories/snacks.png',
-  breads: '/images/categories/breads.png',
-};const QUOTES = [
-  ['The rasmalai cake was the star of my mum’s 60th. Nobody believed it was eggless.', 'Harpreet K.', 'Birthday cake'],
-  ['Ordered online, picked up exactly on time, and the samosas were still warm. Our office Friday tradition now.', 'Jack T.', 'Snacks & meals'],
-  ['They turned a Pinterest photo into the most beautiful two-tier engagement cake. Quoted the same day.', 'Simran G.', 'Custom cake'],
-];
+const CAT_IMG = { cakes: '/images/rasmalai-cake.svg', 'custom-cakes': '/images/custom-cake.svg', sweets: '/images/ladoo.svg', snacks: '/images/samosa.svg' };
 
 export default function Home() {
   const { settings, categories } = useSettings();
@@ -55,9 +47,9 @@ export default function Home() {
           </div>
           <div className="relative min-h-[380px] sm:min-h-[520px]">
             <div className="arch-ring" />
-           <div className="arch"><img src="/images/hero-main.png" alt="Celebration cake from Patiala Bakers" /></div>
-<div className="float bottom-[6%] left-[-2%]"><img src="/images/hero-left-ladoo.png" alt="Indian sweets from Patiala Bakers" /></div>
-<div className="float right-[-2%] top-[10%] !w-[34%]"><img src="/images/hero-right-samosa.png" alt="Fresh snacks from Patiala Bakers" /></div>
+            <div className="arch"><img src="/images/rasmalai-cake.svg" alt="Rasmalai cake topped with pistachio and saffron" /></div>
+            <div className="float bottom-[6%] left-[-2%]"><img src="/images/ladoo.svg" alt="Motichoor ladoo" /></div>
+            <div className="float right-[-2%] top-[10%] !w-[34%]"><img src="/images/samosa.svg" alt="Punjabi samosas with chutney" /></div>
             <div className="stamp"><b>100%</b><span>Eggless cakes</span></div>
           </div>
         </div>
@@ -117,7 +109,7 @@ export default function Home() {
       <section className="py-[84px]">
         <div className="wrap grid items-center gap-14 [grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr))]">
           <div className="relative aspect-[5/4] overflow-hidden rounded-3xl shadow-2">
-            <img src="/images/custom cake.png" alt="Custom celebration cake with gold leaf and florals" className="h-full w-full object-cover" />
+            <img src="/images/custom-cake.svg" alt="Custom celebration cake with gold leaf and florals" className="h-full w-full object-cover" />
             <div className="absolute bottom-[18px] left-[18px] rounded-[14px] bg-paper/95 px-4 py-3 shadow-1"><p className="eyebrow">Custom cakes</p><b>Quotes within 24 hours</b></div>
           </div>
           <div>
@@ -147,41 +139,20 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Info + testimonials */}
-      <section className="bg-cream-2/60 py-[84px]">
-        <div className="wrap">
-          <div className="grid gap-[18px] [grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))]">
-            {[[CakeSlice, 'Baked to order', 'Cakes are baked for your pickup day, never frozen ahead.'], [Clock, 'Choose your pickup slot', 'Pick a date and time at checkout. Full slots are hidden automatically.'], [MapPin, 'Pickup in Belmont', settings?.business?.address || '']].map(([I, h, t]) => (
-              <div key={h} className="icard"><div className="ico"><I size={22} /></div><h3 className="mb-1.5 text-[19px] font-extrabold">{h}</h3><p className="text-[14.5px] text-ink-2">{t}</p></div>
-            ))}
-          </div>
-          {/* QUOTES are sample testimonials from the design preview — replace with genuine customer reviews before launch */}
-          <div className="mt-16 mb-8 flex flex-wrap items-end gap-4"><div className="flex-1"><p className="eyebrow">Kind words</p><h2 className="sec-title">Loved across Geelong</h2></div><span className="tag">Sample reviews</span></div>
-          <div className="grid gap-[18px] [grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))]">
-            {QUOTES.map(([q, n, t]) => (
-              <figure key={n} className="icard flex flex-col gap-4">
-                <div className="flex gap-0.5 text-gold" aria-label="5 out of 5 stars">{Array.from({ length: 5 }, (_, i) => <Star key={i} size={15} fill="currentColor" />)}</div>
-                <blockquote className="font-serif text-[23px] leading-tight text-wine-ink">“{q}”</blockquote>
-                <figcaption className="text-sm"><b>{n}</b> <span className="muted">· {t}</span></figcaption>
-              </figure>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Info */}
+      <Highlights address={settings?.business?.address || ''} />
+
+      <Testimonials />
 
       {/* Location & hours */}
       <section className="py-[84px]">
         <div className="wrap grid gap-[22px] [grid-template-columns:repeat(auto-fit,minmax(min(380px,100%),1fr))]">
-        <div className="relative min-h-[360px] overflow-hidden rounded-[20px] border border-line-2">
-  <iframe
-    title="Patiala Bakers on Google Maps"
-    src={`https://www.google.com/maps?q=${encodeURIComponent(settings?.business?.address || 'Patiala Bakers Belmont VIC')}&output=embed`}
-    className="absolute inset-0 h-full w-full border-0"
-    loading="lazy"
-    referrerPolicy="no-referrer-when-downgrade"
-    allowFullScreen
-  />
-</div>
+          <div className="relative min-h-[360px] overflow-hidden rounded-[20px] border border-line-2 bg-[#EFE6D6]" aria-hidden="true">
+            <div className="absolute left-0 right-0 top-[40%] h-6 bg-cream" /><div className="absolute bottom-0 top-0 left-[48%] w-5 bg-cream" />
+            <div className="absolute left-[8%] top-[18%] h-16 w-28 rounded-lg bg-[#E4D8C3]" /><div className="absolute bottom-[12%] right-[10%] h-20 w-32 rounded-lg bg-[#E4D8C3]" />
+            <div className="absolute left-[52%] top-[44%] flex -translate-x-1/2 -translate-y-full flex-col items-center"><span className="whitespace-nowrap rounded-xl bg-wine px-3 py-2 text-[13px] font-extrabold text-white shadow-2">Patiala Bakers</span><span className="-mt-2 h-3.5 w-3.5 rotate-45 bg-wine" /></div>
+            <span className="absolute left-[6%] top-[33%] text-[11px] font-bold uppercase tracking-widest text-[#9A8A7C]">High St</span>
+          </div>
           <div className="card card-b">
             <p className="eyebrow">Visit us</p>
             <h2 className="sec-title">Pickup from Belmont</h2>
