@@ -10,6 +10,13 @@ import { useSettings } from '../../context/SettingsContext.jsx';
 import { t12 } from '../../utils/format.js';
 
 const WD = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const CAT_IMG = {
+  cakes: '/images/categories/cakes.png',
+  'custom-cakes': '/images/categories/custom-cakes.png',
+  sweets: '/images/categories/sweets.png',
+  snacks: '/images/categories/snacks.png',
+  breads: '/images/categories/breads.png',
+};
 const CAT_IMG = { cakes: '/images/rasmalai-cake.svg', 'custom-cakes': '/images/custom-cake.svg', sweets: '/images/ladoo.svg', snacks: '/images/samosa.svg' };
 
 export default function Home() {
