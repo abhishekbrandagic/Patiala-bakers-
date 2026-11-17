@@ -141,7 +141,7 @@ export default function OrderView({ order, address }) {
           </div>
         )}
         <div className="sumline tot">
-          <span>Total</span>
+          <span>Total....</span>
           <span className="num">{money(order.total)}</span>
         </div>
       </div>
