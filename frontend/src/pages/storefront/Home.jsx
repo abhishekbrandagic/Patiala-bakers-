@@ -17,6 +17,7 @@ const CAT_IMG = {
   snacks: '/images/categories/snacks.png',
   breads: '/images/categories/breads.png',
 };
+const CAT_IMG = { cakes: '/images/rasmalai-cake.svg', 'custom-cakes': '/images/custom-cake.svg', sweets: '/images/ladoo.svg', snacks: '/images/samosa.svg' };
 
 export default function Home() {
   const { settings, categories } = useSettings();
@@ -53,9 +54,9 @@ export default function Home() {
           </div>
           <div className="relative min-h-[380px] sm:min-h-[520px]">
             <div className="arch-ring" />
-           <div className="arch"><img src="/images/hero-main.png" alt="Celebration cake from Patiala Bakers" /></div>
-<div className="float bottom-[6%] left-[-2%]"><img src="/images/hero-left-ladoo.png" alt="Indian sweets from Patiala Bakers" /></div>
-<div className="float right-[-2%] top-[10%] !w-[34%]"><img src="/images/hero-right-samosa.png" alt="Fresh snacks from Patiala Bakers" /></div>
+            <div className="arch"><img src="/images/rasmalai-cake.svg" alt="Rasmalai cake topped with pistachio and saffron" /></div>
+            <div className="float bottom-[6%] left-[-2%]"><img src="/images/ladoo.svg" alt="Motichoor ladoo" /></div>
+            <div className="float right-[-2%] top-[10%] !w-[34%]"><img src="/images/samosa.svg" alt="Punjabi samosas with chutney" /></div>
             <div className="stamp"><b>100%</b><span>Eggless cakes</span></div>
           </div>
         </div>
@@ -115,7 +116,7 @@ export default function Home() {
       <section className="py-[84px]">
         <div className="wrap grid items-center gap-14 [grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr))]">
           <div className="relative aspect-[5/4] overflow-hidden rounded-3xl shadow-2">
-            <img src="/images/custom cake.png" alt="Custom celebration cake with gold leaf and florals" className="h-full w-full object-cover" />
+            <img src="/images/custom-cake.svg" alt="Custom celebration cake with gold leaf and florals" className="h-full w-full object-cover" />
             <div className="absolute bottom-[18px] left-[18px] rounded-[14px] bg-paper/95 px-4 py-3 shadow-1"><p className="eyebrow">Custom cakes</p><b>Quotes within 24 hours</b></div>
           </div>
           <div>
@@ -153,16 +154,12 @@ export default function Home() {
       {/* Location & hours */}
       <section className="py-[84px]">
         <div className="wrap grid gap-[22px] [grid-template-columns:repeat(auto-fit,minmax(min(380px,100%),1fr))]">
-        <div className="relative min-h-[360px] overflow-hidden rounded-[20px] border border-line-2">
-  <iframe
-    title="Patiala Bakers on Google Maps"
-    src={`https://www.google.com/maps?q=${encodeURIComponent(settings?.business?.address || 'Patiala Bakers Belmont VIC')}&output=embed`}
-    className="absolute inset-0 h-full w-full border-0"
-    loading="lazy"
-    referrerPolicy="no-referrer-when-downgrade"
-    allowFullScreen
-  />
-</div>
+          <div className="relative min-h-[360px] overflow-hidden rounded-[20px] border border-line-2 bg-[#EFE6D6]" aria-hidden="true">
+            <div className="absolute left-0 right-0 top-[40%] h-6 bg-cream" /><div className="absolute bottom-0 top-0 left-[48%] w-5 bg-cream" />
+            <div className="absolute left-[8%] top-[18%] h-16 w-28 rounded-lg bg-[#E4D8C3]" /><div className="absolute bottom-[12%] right-[10%] h-20 w-32 rounded-lg bg-[#E4D8C3]" />
+            <div className="absolute left-[52%] top-[44%] flex -translate-x-1/2 -translate-y-full flex-col items-center"><span className="whitespace-nowrap rounded-xl bg-wine px-3 py-2 text-[13px] font-extrabold text-white shadow-2">Patiala Bakers</span><span className="-mt-2 h-3.5 w-3.5 rotate-45 bg-wine" /></div>
+            <span className="absolute left-[6%] top-[33%] text-[11px] font-bold uppercase tracking-widest text-[#9A8A7C]">High St</span>
+          </div>
           <div className="card card-b">
             <p className="eyebrow">Visit us</p>
             <h2 className="sec-title">Pickup from Belmont</h2>
