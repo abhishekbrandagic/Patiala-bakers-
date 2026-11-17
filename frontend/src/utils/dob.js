@@ -5,6 +5,9 @@ export const fmtDob = (dob) => (dob?.day ? `${dob.day} ${MONTHS[dob.month - 1]}$
 
 export const fmtAddress = (a) => (a ? [a.line1, [a.suburb, a.state, a.postcode].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '');
 
+// 1st, 2nd, 3rd, 4th … for anniversaries
+export const ordinal = (n) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th'}`;
+
 export const inDaysLabel = (n) => (n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : `In ${n} days`);
 
 // Form values <-> what the server stores

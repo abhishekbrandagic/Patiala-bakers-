@@ -56,7 +56,7 @@ export async function saveCustomerProfile(req, res) {
   res.json({ profile: profileView(profile) });
 }
 
-// Customers whose birthday falls in the next few days (bakery time), soonest first
+// Birthdays and anniversaries in the next few days (bakery time), soonest first
 export async function upcomingBirthdays(req, res) {
   const days = Math.min(31, Math.max(1, Number(req.query.days) || 7));
   const s = await getSettings();
@@ -66,17 +66,24 @@ export async function upcomingBirthdays(req, res) {
     const date = addDays(today, i);
     const [y, m, d] = date.split('-').map(Number);
     wanted.push({ date, month: m, day: d, inDays: i });
-    // Birthdays on 29 February are celebrated on 28 February in other years
+    // Dates on 29 February are celebrated on 28 February in other years
     const leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
     if (m === 2 && d === 28 && !leap) wanted.push({ date, month: 2, day: 29, inDays: i });
   }
-  const profiles = await CustomerProfile.find({ $or: wanted.map((w) => ({ 'dob.month': w.month, 'dob.day': w.day })) }).limit(300);
-  const items = profiles
-    .map((p) => {
-      const when = wanted.find((w) => w.month === p.dob.month && w.day === p.dob.day);
-      const turning = p.dob.year ? Number(when.date.slice(0, 4)) - p.dob.year : null;
-      return { ...profileView(p), date: when.date, inDays: when.inDays, turning };
-    })
-    .sort((a, b) => a.inDays - b.inDays || a.name.localeCompare(b.name));
+  const KINDS = ['dob', 'anniversary'];
+  const profiles = await CustomerProfile.find({
+    $or: KINDS.flatMap((k) => wanted.map((w) => ({ [`${k}.month`]: w.month, [`${k}.day`]: w.day }))),
+  }).limit(300);
+  const items = [];
+  for (const p of profiles) {
+    for (const k of KINDS) {
+      const d = p[k];
+      const when = d?.day && wanted.find((w) => w.month === d.month && w.day === d.day);
+      if (!when) continue;
+      const years = d.year ? Number(when.date.slice(0, 4)) - d.year : null;
+      items.push({ ...profileView(p), kind: k === 'dob' ? 'birthday' : 'anniversary', date: when.date, inDays: when.inDays, years, turning: k === 'dob' ? years : null });
+    }
+  }
+  items.sort((a, b) => a.inDays - b.inDays || a.name.localeCompare(b.name));
   res.json({ today, days, items });
 }

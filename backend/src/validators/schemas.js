@@ -83,8 +83,10 @@ const addressSchema = z
   })
   .nullable()
   .optional();
+// Anniversary has the same rules as the birthday
 const profileExtras = {
   dob: dobSchema,
+  anniversary: dobSchema,
   address: addressSchema,
   whatsappOptIn: z.boolean().optional(),
 };

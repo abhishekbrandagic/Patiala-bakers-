@@ -15,6 +15,12 @@ const customerProfileSchema = new mongoose.Schema(
       month: { type: Number, min: 1, max: 12 },
       year: { type: Number, min: 1900, max: 2100 },
     },
+    // Wedding anniversary, same shape as the birthday
+    anniversary: {
+      day: { type: Number, min: 1, max: 31 },
+      month: { type: Number, min: 1, max: 12 },
+      year: { type: Number, min: 1900, max: 2100 },
+    },
     address: { line1: String, suburb: String, state: String, postcode: String },
     // Spam Act: proof of when and how the customer agreed to marketing messages on WhatsApp
     whatsapp: {
@@ -29,6 +35,7 @@ const customerProfileSchema = new mongoose.Schema(
 );
 
 customerProfileSchema.index({ 'dob.month': 1, 'dob.day': 1 });
+customerProfileSchema.index({ 'anniversary.month': 1, 'anniversary.day': 1 });
 customerProfileSchema.set('toJSON', { versionKey: false });
 
-export const CustomerProfile = mongoose.model('CustomerProfile', customerProfileSchema);    
+export const CustomerProfile = mongoose.model('CustomerProfile', customerProfileSchema);

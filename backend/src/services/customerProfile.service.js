@@ -28,7 +28,7 @@ export async function findProfile({ user, email, phone }) {
 }
 
 /**
- * Saves the details. `changes` may hold name, email, phone, dob, address and whatsappOptIn.
+ * Saves the details. `changes` may hold name, email, phone, dob, anniversary, address and whatsappOptIn.
  * `by` is 'customer' when they edit their own profile, or the staff member's name.
  */
 export async function saveProfile({ user, email, phone }, changes, by) {
@@ -41,6 +41,7 @@ export async function saveProfile({ user, email, phone }, changes, by) {
   const tel = changes.phone ?? phone;
   if (tel) { p.phone = tel; p.phoneKey = phoneKey(tel); }
   if ('dob' in changes) p.dob = changes.dob?.day ? changes.dob : undefined;
+  if ('anniversary' in changes) p.anniversary = changes.anniversary?.day ? changes.anniversary : undefined;
   if ('address' in changes) p.address = changes.address || undefined;
   if (typeof changes.whatsappOptIn === 'boolean' && changes.whatsappOptIn !== Boolean(p.whatsapp?.optIn)) {
     if (changes.whatsappOptIn) p.set('whatsapp', { optIn: true, at: new Date(), by });
@@ -51,6 +52,8 @@ export async function saveProfile({ user, email, phone }, changes, by) {
   return p;
 }
 
+const dateView = (d) => (d?.day ? { day: d.day, month: d.month, year: d.year || null } : null);
+
 // What the admin panel and the customer see
 export function profileView(p) {
   if (!p) return null;
@@ -59,7 +62,8 @@ export function profileView(p) {
     name: p.name,
     email: p.email,
     phone: p.phone,
-    dob: p.dob?.day ? { day: p.dob.day, month: p.dob.month, year: p.dob.year || null } : null,
+    dob: dateView(p.dob),
+    anniversary: dateView(p.anniversary),
     address: p.address?.line1 || p.address?.suburb ? p.address : null,
     whatsapp: { optIn: Boolean(p.whatsapp?.optIn), at: p.whatsapp?.at || null, by: p.whatsapp?.by || '', optOutAt: p.whatsapp?.optOutAt || null },
     updatedAt: p.updatedAt,

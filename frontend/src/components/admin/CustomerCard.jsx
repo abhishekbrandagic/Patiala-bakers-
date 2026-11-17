@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Cake, MapPin, MessageCircle, Pencil, Plus } from 'lucide-react';
+import { Cake, Heart, MapPin, MessageCircle, Pencil, Plus } from 'lucide-react';
 import { api, apiError } from '../../api/client.js';
 import { Badge, Modal, PageLoader, Spinner } from '../ui.jsx';
 import { AddressInput, DobInput } from '../ProfileFields.jsx';
@@ -42,14 +42,14 @@ export function CustomerDetails({ email, phone, name, onOpenOrder, compact = fal
   if (!d) return <PageLoader />;
   const p = d.profile;
 
-  const startEdit = () => setEdit({ dob: dobToForm(p?.dob), address: addressToForm(p?.address), whatsappOptIn: Boolean(p?.whatsapp?.optIn) });
+  const startEdit = () => setEdit({ dob: dobToForm(p?.dob), anniversary: dobToForm(p?.anniversary), address: addressToForm(p?.address), whatsappOptIn: Boolean(p?.whatsapp?.optIn) });
   const save = async () => {
-    if (dobError(edit.dob)) return;
+    if (dobError(edit.dob) || dobError(edit.anniversary)) return;
     setBusy(true);
     try {
       const { data } = await api.put('/admin/customer-profile', {
         email: d.customer.email, phone: d.customer.phone, name: d.customer.name,
-        dob: dobFromForm(edit.dob), address: addressFromForm(edit.address), whatsappOptIn: edit.whatsappOptIn,
+        dob: dobFromForm(edit.dob), anniversary: dobFromForm(edit.anniversary), address: addressFromForm(edit.address), whatsappOptIn: edit.whatsappOptIn,
       });
       setD({ ...d, profile: data.profile });
       setEdit(null);
@@ -83,6 +83,7 @@ export function CustomerDetails({ email, phone, name, onOpenOrder, compact = fal
         <section className="flex flex-col gap-4 rounded-[14px] border border-line-2 bg-white p-4">
           <h4 className="text-sm font-extrabold">Edit details</h4>
           <DobInput idPrefix="cc-dob" value={edit.dob} onChange={(dob) => setEdit({ ...edit, dob })} help="Day and month are enough. The year is optional." />
+          <DobInput idPrefix="cc-ann" label="Wedding anniversary" value={edit.anniversary} onChange={(anniversary) => setEdit({ ...edit, anniversary })} help="The year is optional." />
           <AddressInput idPrefix="cc-addr" value={edit.address} onChange={(address) => setEdit({ ...edit, address })} />
           <label className="check items-start !min-h-0">
             <input type="checkbox" className="mt-0.5" checked={edit.whatsappOptIn} onChange={(e) => setEdit({ ...edit, whatsappOptIn: e.target.checked })} />
@@ -90,12 +91,13 @@ export function CustomerDetails({ email, phone, name, onOpenOrder, compact = fal
           </label>
           <div className="flex justify-end gap-2">
             <button type="button" className="btn btn-o btn-sm" onClick={() => setEdit(null)} disabled={busy}>Cancel</button>
-            <button type="button" className="btn btn-p btn-sm" onClick={save} disabled={busy || Boolean(dobError(edit.dob))}>{busy && <Spinner />} Save details</button>
+            <button type="button" className="btn btn-p btn-sm" onClick={save} disabled={busy || Boolean(dobError(edit.dob) || dobError(edit.anniversary))}>{busy && <Spinner />} Save details</button>
           </div>
         </section>
       ) : (
         <section className="rounded-[14px] border border-line-2 bg-white px-4 py-1">
           <div className="cc-row"><Cake size={17} aria-hidden="true" /><span className="cc-key">Birthday</span><span className="cc-val">{p?.dob ? <b>{fmtDob(p.dob)}</b> : <Empty />}</span><AddBtn has={Boolean(p?.dob)} /></div>
+          <div className="cc-row"><Heart size={17} aria-hidden="true" /><span className="cc-key">Anniversary</span><span className="cc-val">{p?.anniversary ? <b>{fmtDob(p.anniversary)}</b> : <Empty />}</span><AddBtn has={Boolean(p?.anniversary)} /></div>
           <div className="cc-row"><MapPin size={17} aria-hidden="true" /><span className="cc-key">Address</span><span className="cc-val">{p?.address ? fmtAddress(p.address) : <Empty />}</span><AddBtn has={Boolean(p?.address)} /></div>
           <div className="cc-row"><MessageCircle size={17} aria-hidden="true" /><span className="cc-key">WhatsApp offers</span>
             <span className="cc-val">{wa?.optIn ? <><Badge cls="b-ok">Agreed</Badge> <span className="text-xs muted">{fmtStamp(wa.at)} · {wa.by === 'customer' ? 'by the customer' : `recorded by ${wa.by}`}</span></> : wa?.optOutAt ? <><Badge cls="b-bad">Said no</Badge> <span className="text-xs muted">{fmtStamp(wa.optOutAt)}</span></> : <span className="cc-empty">Not asked yet</span>}</span>

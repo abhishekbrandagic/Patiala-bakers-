@@ -121,12 +121,13 @@ export function me(req, res) {
 }
 
 export async function updateProfile(req, res) {
-  const { dob, address, whatsappOptIn, ...account } = req.body;
+  const { dob, anniversary, address, whatsappOptIn, ...account } = req.body;
   Object.assign(req.user, account);
   await req.user.save();
   // Birthday, address and WhatsApp consent live in the customer's profile, which the bakery can see
   const extras = {};
   if (dob !== undefined) extras.dob = dob;
+  if (anniversary !== undefined) extras.anniversary = anniversary;
   if (address !== undefined) extras.address = address;
   if (whatsappOptIn !== undefined) extras.whatsappOptIn = whatsappOptIn;
   if (req.user.role !== "customer")

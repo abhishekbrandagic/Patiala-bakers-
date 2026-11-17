@@ -151,10 +151,13 @@ export default function ProductDetail() {
                   <input id="msg" className="in" maxLength={msgMax} value={opts.message} onChange={(e) => set('message', e.target.value)} placeholder="e.g. Happy Birthday Aarav" />
                   <p className="help">{opts.message?.length || 0}/{msgMax} characters · piped in chocolate or buttercream</p>
                 </div>
-                <div className="osec">
-                  <ReferenceImagesInput id="ref-photos" value={opts.referenceImages || []} onChange={(v) => set('referenceImages', v)} onBusy={setUploading} />
-                  <p className="help">Show us a cake you like and our bakers will use it as a guide.</p>
-                </div>
+                {/* Reference photos are only for custom cakes; regular cakes are made as shown */}
+                {p.category === 'custom-cakes' && (
+                  <div className="osec">
+                    <ReferenceImagesInput id="ref-photos" value={opts.referenceImages || []} onChange={(v) => set('referenceImages', v)} onBusy={setUploading} />
+                    <p className="help">Show us a cake you like and our bakers will use it as a guide.</p>
+                  </div>
+                )}
               </>
             )}
 

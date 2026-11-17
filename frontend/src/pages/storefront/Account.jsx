@@ -397,6 +397,7 @@ function Profile() {
       .then(({ data }) =>
         setExtra({
           dob: dobToForm(data.profile?.dob),
+          anniversary: dobToForm(data.profile?.anniversary),
           address: addressToForm(data.profile?.address),
           whatsappOptIn: Boolean(data.profile?.whatsapp?.optIn),
         }),
@@ -404,19 +405,23 @@ function Profile() {
       .catch(() =>
         setExtra({
           dob: dobToForm(null),
+          anniversary: dobToForm(null),
           address: addressToForm(null),
           whatsappOptIn: false,
         }),
       );
   }, []);
   const save = p.handleSubmit(async (v) => {
-    if (extra && dobError(extra.dob)) {
-      toast.error(dobError(extra.dob));
+    const dateProblem =
+      extra && (dobError(extra.dob) || dobError(extra.anniversary));
+    if (dateProblem) {
+      toast.error(dateProblem);
       return;
     }
     const more = extra
       ? {
           dob: dobFromForm(extra.dob),
+          anniversary: dobFromForm(extra.anniversary),
           address: addressFromForm(extra.address),
           whatsappOptIn: extra.whatsappOptIn,
         }
@@ -479,14 +484,21 @@ function Profile() {
         {extra && (
           <div className="flex flex-col gap-4 border-t border-line-2 pt-4">
             <p className="text-sm muted">
-              Optional. Tell us your birthday so we can send you something
-              special on the day.
+              Optional. Tell us your birthday or anniversary so we can send you
+              something special on the day.
             </p>
             <DobInput
               idPrefix="pf-dob"
               value={extra.dob}
               onChange={(dob) => setExtra({ ...extra, dob })}
               help="The year is optional."
+            />
+            <DobInput
+              idPrefix="pf-ann"
+              label="Wedding anniversary"
+              value={extra.anniversary}
+              onChange={(anniversary) => setExtra({ ...extra, anniversary })}
+              help="Optional. We’d love to help you celebrate."
             />
             <AddressInput
               idPrefix="pf-addr"
